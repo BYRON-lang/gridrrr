@@ -65,7 +65,7 @@ export const fetchWebsiteById = async (id: string): Promise<Website | null> => {
         // Try to parse as JSON first
         try {
           data.tags = JSON.parse(data.tags);
-        } catch (e) {
+        } catch {
           // If JSON parsing fails, try splitting by comma
           data.tags = data.tags
             .split(',')

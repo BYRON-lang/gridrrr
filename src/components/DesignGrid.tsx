@@ -158,9 +158,9 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
         currentObserver.disconnect();
       }
     };
-  }, [hasMore, isLoading, loadDesigns]);
+  }, [hasMore, isLoading, loadDesigns, page]);
 
-  const renderDesignItem = (design: Design) => (
+  const renderDesignItem = useCallback((design: Design) => (
     <div className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg">
       <Link href={`/website/${design.id}`} className="block w-full h-full">
         {design.preview_video_url ? (
@@ -194,7 +194,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
         </div>
       </Link>
     </div>
-  );
+  ), []);
 
   if (designs.length === 0 && isLoading) {
     return (

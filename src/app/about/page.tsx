@@ -9,7 +9,7 @@ export default function AboutPage() {
           <div className="md:w-3/4">
             <p className="text-gray-600 text-sm md:text-base leading-relaxed">
               Learn more about our platform, mission, and the team behind our design showcase. 
-              We're dedicated to bringing you the best in design inspiration and resources.
+              We&apos;re dedicated to bringing you the best in design inspiration and resources.
             </p>
           </div>
         </div>

@@ -35,7 +35,7 @@ export default function ContactPage() {
       
       // Reset form
       setFormData({ name: '', email: '', message: '' });
-    } catch (error) {
+    } catch {
       setSubmitStatus({
         success: false,
         message: 'Something went wrong. Please try again later.'
@@ -51,7 +51,7 @@ export default function ContactPage() {
         <div className="text-center mb-12">
           <h1 className="text-2xl font-semibold text-gray-900 mb-4">Contact Us</h1>
           <p className="text-gray-600">
-            Have questions or feedback? We'd love to hear from you.
+            Have questions or feedback? We&apos;d love to hear from you.
           </p>
         </div>
 

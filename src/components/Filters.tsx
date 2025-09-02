@@ -16,14 +16,14 @@ import {
 } from '@heroicons/react/24/outline';
 
 interface FiltersProps {
-  contentType: 'all' | 'design' | 'website';
-  onTypeChange: (type: 'all' | 'design' | 'website') => void;
+  contentType: 'design' | 'website';
+  onTypeChange: (type: 'design' | 'website') => void;
   activeCategory: string;
   onCategoryChange: (category: string) => void;
 }
 
 const Filters: React.FC<FiltersProps> = ({ 
-  contentType = 'all',
+  contentType = 'website',
   onTypeChange = () => {},
   activeCategory = 'all',
   onCategoryChange = () => {}

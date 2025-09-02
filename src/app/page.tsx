@@ -9,7 +9,7 @@ import { SubmitWorkModal } from '@/components/SubmitWorkModal';
 
 export default function Home() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
-  const [contentType, setContentType] = useState<'all' | 'design' | 'website'>('all');
+  const [contentType, setContentType] = useState<'website' | 'design'>('website');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   return (
     <div className="min-h-screen bg-white">
@@ -47,16 +47,11 @@ export default function Home() {
           />
           {contentType === 'website' ? (
             <DesignGrid 
-              contentType={contentType} 
-              activeCategory={activeCategory}
-            />
-          ) : contentType === 'design' ? (
-            <DesignsGrid 
+              contentType="website" 
               activeCategory={activeCategory}
             />
           ) : (
-            <DesignGrid 
-              contentType={contentType} 
+            <DesignsGrid 
               activeCategory={activeCategory}
             />
           )}

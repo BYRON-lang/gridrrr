@@ -20,13 +20,13 @@ interface Design extends Website {
 }
 
 interface DesignGridProps {
-  contentType: 'all' | 'design' | 'website';
+  contentType: 'design' | 'website'; // Removed 'all' as per requirements
   activeCategory: string;
 }
 
 const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) => {
   const [designs, setDesigns] = useState<Design[]>([]);
-  const [page] = useState(1);
+  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
@@ -34,10 +34,11 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
 
   // Fetch and filter designs based on content type and active category
   const loadDesigns = useCallback(async (pageNum: number, reset: boolean = false) => {
-    if (isLoading || (pageNum > 1 && !hasMore)) return;
+    if (isLoading) return;
     
     console.log(`Fetching page ${pageNum} with content type: ${contentType}, category: ${activeCategory}`);
     setIsLoading(true);
+    
     try {
       const pageSize = 12; // Number of items per page
       const result = await fetchApprovedWebsites(pageNum, pageSize);
@@ -54,6 +55,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
         return;
       }
       
+      // Map all results to website type since we're only showing websites now
       const websiteDesigns: Design[] = result.data.map(website => ({
         ...website,
         type: 'website' as const,
@@ -66,41 +68,35 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
         date: new Date(website.created_at).toLocaleDateString(),
       }));
       
-      // Filter designs by content type and category
-      let filteredDesigns = websiteDesigns;
+      // Filter designs by active category if not 'all' or 'Filter'
+      let filteredDesigns = [...websiteDesigns];
       
       console.log('Before filtering - Total designs:', filteredDesigns.length);
-      
-      // Filter by content type if not 'all'
-      if (contentType !== 'all') {
-        filteredDesigns = filteredDesigns.filter(design => {
-          // Only include if type matches the content type filter
-          return design.type === contentType;
-        });
-      }
 
-      // Filter by active category if not 'all' or 'Filter'
       if (activeCategory && activeCategory !== 'all' && activeCategory !== 'Filter') {
         console.log('Filtering by category:', activeCategory);
         filteredDesigns = filteredDesigns.filter(design => {
           if (!design.tags || !Array.isArray(design.tags)) {
-            console.warn('Invalid tags for design:', design.id, design.tags);
             return false;
           }
-          
-          const hasCategory = design.tags.some(tag => 
+          return design.tags.some(tag => 
             tag.toLowerCase() === activeCategory.toLowerCase()
           );
-          
-          console.log(`Design ${design.id} (${design.title}) has tag ${activeCategory}:`, hasCategory);
-          return hasCategory;
         });
         
         console.log('After category filtering - Remaining designs:', filteredDesigns.length);
       }
       
-      setDesigns(prev => reset ? filteredDesigns : [...prev, ...filteredDesigns]);
-      setHasMore(result.data.length === pageSize);
+      setDesigns(prev => {
+        if (reset) return filteredDesigns;
+        // Only add new items that don't already exist in the array
+        const existingIds = new Set(prev.map(d => d.id));
+        const newItems = filteredDesigns.filter(d => !existingIds.has(d.id));
+        return [...prev, ...newItems];
+      });
+      
+      setPage(pageNum);
+      setHasMore(result.hasMore && result.data.length === pageSize);
     } catch (error) {
       console.error('Error loading websites:', error);
     } finally {
@@ -110,14 +106,16 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
   
   // Initial load and reset when filters change
   useEffect(() => {
-    const loadInitialData = async () => {
-      setDesigns([]); // Clear existing designs when filters change
-      setHasMore(true); // Reset hasMore when filters change
-      await loadDesigns(1, true);
-    };
+    setDesigns([]);
+    setPage(1);
+    setHasMore(true);
     
-    loadInitialData();
-  }, [contentType, activeCategory, loadDesigns]);
+    const timer = setTimeout(() => {
+      loadDesigns(1, true);
+    }, 0);
+    
+    return () => clearTimeout(timer);
+  }, [activeCategory, contentType]);
   
   // Set up intersection observer for infinite scroll
   useEffect(() => {
@@ -125,39 +123,30 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
     
     const currentObserver = observer.current;
     const observerCallback: IntersectionObserverCallback = (entries) => {
-      const [entry] = entries;
-      if (entry.isIntersecting) {
-        // Only trigger load if we're not already loading and there are more items
-        if (!isLoading && hasMore) {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !isLoading && hasMore) {
           loadDesigns(page + 1);
         }
-      }
+      });
     };
     
     const options = {
       root: null,
-      rootMargin: '200px', // Start loading when within 200px of the viewport
+      rootMargin: '200px',
       threshold: 0.1,
     };
     
     if (loadMoreRef.current) {
-      // Disconnect any existing observer
-      if (currentObserver) {
-        currentObserver.disconnect();
-      }
-      
-      // Create new observer
       const newObserver = new IntersectionObserver(observerCallback, options);
       newObserver.observe(loadMoreRef.current);
       observer.current = newObserver;
+      
+      return () => {
+        if (newObserver) {
+          newObserver.disconnect();
+        }
+      };
     }
-    
-    // Cleanup function
-    return () => {
-      if (currentObserver) {
-        currentObserver.disconnect();
-      }
-    };
   }, [hasMore, isLoading, loadDesigns, page]);
 
   const renderDesignItem = useCallback((design: Design) => (
@@ -219,57 +208,27 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
   return (
     <div className="mt-8 pb-24 sm:pb-32">
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-        {designs.map((design, index) => (
-          <div key={`${design.id}-${index}`} className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg">
-            <Link href={`/website/${design.id}`} className="block w-full h-full">
-              {design.preview_video_url ? (
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
-                >
-                  <source src={design.preview_video_url} type="video/mp4" />
-                </video>
-              ) : (
-                <Image
-                  src={design.image_url || '/placeholder.jpg'}
-                  alt={design.title}
-                  fill
-                  className="object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
-                  sizes="(max-width: 480px) 100vw, (max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33.33vw, 25vw"
-                />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 sm:p-4 flex flex-col justify-between">
-                <div className="flex justify-end">
-                  <div className="bg-white/90 hover:bg-white text-black p-1.5 rounded-full cursor-pointer transition-all duration-200 hover:scale-110">
-                    <ArrowUpRightIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </div>
-                </div>
-                <div className="text-white">
-                  <h3 className="font-medium text-xs sm:text-sm line-clamp-2">{design.title}</h3>
-                </div>
-              </div>
-            </Link>
+        {designs.map((design) => (
+          <div key={design.id} className="w-full">
+            {renderDesignItem(design)}
           </div>
         ))}
       </div>
       
+      {/* Loading indicator */}
+      {isLoading && (
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mt-4">
+          {[...Array(4)].map((_, index) => (
+            <DesignItemSkeleton key={`skeleton-${index}`} />
+          ))}
+        </div>
+      )}
+      
       {/* Load more trigger */}
-      <div ref={loadMoreRef} className="w-full py-6">
-        {isLoading && (
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-            {[...Array(4)].map((_, index) => (
-              <DesignItemSkeleton key={`loading-${index}`} />
-            ))}
-          </div>
-        )}
-      </div>
+      {hasMore && <div ref={loadMoreRef} className="h-10 w-full" />}
       
       <Footer />
     </div>
   );
-};
-
+} // Added missing closing brace for the component
 export default DesignGrid;

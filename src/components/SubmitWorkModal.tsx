@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Modal } from './ui/Modal';
-import { v4 as uuidv4 } from 'uuid';
 import { supabase, uploadFile } from '@/lib/supabase/storage';
 
 interface SubmitWorkModalProps {
@@ -179,7 +179,7 @@ export function SubmitWorkModal({ isOpen, onClose }: SubmitWorkModalProps) {
           <ul className="text-sm text-gray-700 space-y-2 mb-6 list-disc pl-5">
             <li>It can take 4-5 days for me to review the website.</li>
             <li>Due to the amount of submissions and to keep a high standard, most submissions are not accepted.</li>
-            <li>Don't be disappointed, please try it again with your next project.</li>
+            <li>Don&apos;t be disappointed, please try it again with your next project.</li>
           </ul>
           
           <div className="mb-6">
@@ -473,11 +473,13 @@ export function SubmitWorkModal({ isOpen, onClose }: SubmitWorkModalProps) {
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-1 relative">
-                      <img
+                    <div className="mt-1 relative h-64 w-full">
+                      <Image
                         src={imagePreview}
                         alt="Preview"
-                        className="h-64 w-full object-contain border border-gray-300 rounded-md"
+                        fill
+                        className="object-contain border border-gray-300 rounded-md"
+                        sizes="(max-width: 768px) 100vw, 50vw"
                       />
                       <button
                         type="button"

@@ -3,10 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { 
-  ArrowUpRightIcon,
-  ArrowPathIcon
-} from '@heroicons/react/24/outline';
+import { ArrowUpRightIcon } from '@heroicons/react/24/outline';
 import { fetchDesigns, Design } from '@/lib/supabase/designs';
 import Footer from './Footer';
 import DesignSkeleton from './DesignSkeleton';
@@ -88,11 +85,12 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({ activeCategory }) => {
   // Update filtered designs when activeCategory changes
   useEffect(() => {
     const filtered = filterDesigns(designs);
+    console.log('Filtered designs:', filtered);
     setFilteredDesigns(filtered);
   }, [activeCategory, designs, filterDesigns]);
 
-  const renderDesignItem = (design: Design, index: number) => (
-    <div className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200">
+  const renderDesignItem = (design: Design) => (
+    <div key={design.id} className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200">
       <Link href={`/design/${design.id}`} className="block w-full h-full">
         <Image
           src={design.image_url || '/placeholder.jpg'}
@@ -139,9 +137,9 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({ activeCategory }) => {
   return (
     <div className="mt-8 pb-24 sm:pb-32">
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-        {filteredDesigns.map((design, index) => (
+        {filteredDesigns.map((design) => (
           <div key={design.id}>
-            {renderDesignItem(design, index)}
+            {renderDesignItem(design)}
           </div>
         ))}
       </div>

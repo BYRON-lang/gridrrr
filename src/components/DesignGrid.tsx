@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowUpRightIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { ArrowUpRightIcon } from '@heroicons/react/24/outline';
 import { fetchApprovedWebsites, Website } from '@/lib/supabase/websites';
 import Footer from './Footer';
 import DesignItemSkeleton from './DesignItemSkeleton';
@@ -106,15 +106,19 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
     } finally {
       setIsLoading(false);
     }
-  }, [contentType, activeCategory, isLoading]);
+  }, [contentType, activeCategory, isLoading, hasMore]);
   
   // Initial load and reset when filters change
   useEffect(() => {
-    setPage(1);
-    setDesigns([]); // Clear existing designs when filters change
-    setHasMore(true); // Reset hasMore when filters change
-    loadDesigns(1, true);
-  }, [contentType, activeCategory]);
+    const loadInitialData = async () => {
+      setPage(1);
+      setDesigns([]); // Clear existing designs when filters change
+      setHasMore(true); // Reset hasMore when filters change
+      await loadDesigns(1, true);
+    };
+    
+    loadInitialData();
+  }, [contentType, activeCategory, loadDesigns]);
   
   // Set up intersection observer for infinite scroll
   useEffect(() => {
@@ -161,7 +165,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
     };
   }, [hasMore, isLoading, loadDesigns]);
 
-  const renderDesignItem = (design: Design, index: number) => (
+  const renderDesignItem = (design: Design) => (
     <div className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg">
       <Link href={`/website/${design.id}`} className="block w-full h-full">
         {design.preview_video_url ? (

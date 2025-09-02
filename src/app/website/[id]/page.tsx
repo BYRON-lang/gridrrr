@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { fetchWebsiteById } from '@/lib/supabase/websites';
 

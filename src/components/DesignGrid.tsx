@@ -26,7 +26,7 @@ interface DesignGridProps {
 
 const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) => {
   const [designs, setDesigns] = useState<Design[]>([]);
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
@@ -111,7 +111,6 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
   // Initial load and reset when filters change
   useEffect(() => {
     const loadInitialData = async () => {
-      setPage(1);
       setDesigns([]); // Clear existing designs when filters change
       setHasMore(true); // Reset hasMore when filters change
       await loadDesigns(1, true);
@@ -128,14 +127,10 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
     const observerCallback: IntersectionObserverCallback = (entries) => {
       const [entry] = entries;
       if (entry.isIntersecting) {
-        setPage(prev => {
-          // Only trigger load if we're not already loading and there are more items
-          if (!isLoading && hasMore) {
-            loadDesigns(prev + 1);
-            return prev + 1;
-          }
-          return prev;
-        });
+        // Only trigger load if we're not already loading and there are more items
+        if (!isLoading && hasMore) {
+          loadDesigns(page + 1);
+        }
       }
     };
     

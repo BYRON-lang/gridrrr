@@ -344,7 +344,7 @@ export function SubmitWorkModal({ isOpen, onClose }: SubmitWorkModalProps) {
                 
                 <div>
                   <label htmlFor="designer-name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Designer's Name <span className="text-red-500">*</span>
+                    Designer&apos;s Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"

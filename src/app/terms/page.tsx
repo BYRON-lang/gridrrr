@@ -14,7 +14,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">1. Acceptance of Terms</h2>
             <div className="space-y-4 text-gray-600 text-sm md:text-base leading-relaxed">
               <p>
-                By accessing or using Gridrr ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
+                By accessing or using Gridrr (&quot;the Platform&quot;), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our services.
               </p>
             </div>
           </section>
@@ -25,7 +25,7 @@ export default function TermsPage() {
               <p>When using Gridrr, you agree to:</p>
               <ul className="list-disc pl-5 space-y-2">
                 <li>Submit only original work that you own or have the right to share</li>
-                <li>Not submit any content that is illegal, offensive, or infringes on others' rights</li>
+                <li>Not submit any content that is illegal, offensive, or infringes on others&apos; rights</li>
                 <li>Not use the platform for any unauthorized commercial purposes</li>
                 <li>Comply with all applicable laws and regulations</li>
               </ul>
@@ -54,7 +54,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">5. Limitation of Liability</h2>
             <div className="space-y-4 text-gray-600 text-sm md:text-base leading-relaxed">
               <p>
-                Gridrr is provided "as is" without any warranties. We are not responsible for any damages resulting from your use of the platform, including but not limited to lost profits, data loss, or business interruption.
+                Gridrr is provided &quot;as is&quot; without any warranties. We are not responsible for any damages resulting from your use of the platform, including but not limited to lost profits, data loss, or business interruption.
               </p>
             </div>
           </section>
@@ -63,7 +63,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">6. Changes to Terms</h2>
             <div className="space-y-4 text-gray-600 text-sm md:text-base leading-relaxed">
               <p>
-                We may update these terms from time to time. We will notify users of significant changes by posting the new terms on this page and updating the "Last updated" date.
+                We may update these terms from time to time. We will notify users of significant changes by posting the new terms on this page and updating the &quot;Last updated&quot; date.
               </p>
             </div>
           </section>

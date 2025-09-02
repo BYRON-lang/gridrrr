@@ -84,8 +84,8 @@ export const fetchWebsiteById = async (id: string): Promise<Website | null> => {
         .filter((tag: unknown): tag is string => typeof tag === 'string')
         .map((tag: string) => tag.trim())
         .filter((tag: string) => tag.length > 0);
-    } catch (e) {
-      console.error('Error parsing tags:', e);
+    } catch {
+      console.error('Error parsing tags');
       data.tags = [];
     }
   } else {

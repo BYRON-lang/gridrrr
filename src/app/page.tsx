@@ -13,7 +13,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   return (
     <div className="min-h-screen bg-white">
-      <header className="container mx-auto px-4 pt-60 font-sans">
+      <header className="container mx-auto px-4 pt-32 font-sans">
         <h1 className="text-3xl font-bold text-gray-500 mt-2">Gridrr</h1>
         <p className="text-black text-3xl font-semibold max-w-2xl leading-tight">
           Curated design inspirations<br />

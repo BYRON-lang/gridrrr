@@ -190,7 +190,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
       <div className="mt-8">
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {[...Array(8)].map((_, index) => (
-            <DesignItemSkeleton key={index} />
+            <DesignItemSkeleton key={index} index={index} />
           ))}
         </div>
       </div>
@@ -200,7 +200,11 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
   if (designs.length === 0 && !isLoading) {
     return (
       <div className="mt-8 flex justify-center items-center h-64">
-        <p className="text-gray-500">No designs found. Try a different filter.</p>
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+          {[...Array(8)].map((_, index) => (
+            <DesignItemSkeleton key={index} index={index} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -219,7 +223,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
       {isLoading && (
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mt-4">
           {[...Array(4)].map((_, index) => (
-            <DesignItemSkeleton key={`skeleton-${index}`} />
+            <DesignItemSkeleton key={`skeleton-${index}`} index={index} />
           ))}
         </div>
       )}

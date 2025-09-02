@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { fetchWebsiteById } from '@/lib/supabase/websites';
+import VideoPlayer from './VideoPlayer';
 
 export const revalidate = 3600; // Revalidate at most every hour
 
@@ -16,14 +17,9 @@ export default async function WebsiteDetail({ params }: { params: { id: string }
         <div className="bg-white rounded-xl overflow-hidden">
           <div className="aspect-video bg-white relative border border-gray-200 flex items-center justify-center">
             {website.preview_video_url ? (
-              <video
-                src={website.preview_video_url}
-                className="max-w-full max-h-full object-contain"
-                autoPlay
-                loop
-                muted
-                playsInline
-                aria-label={`Preview of ${website.title}`}
+              <VideoPlayer 
+                videoUrl={website.preview_video_url}
+                title={website.title}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-white">

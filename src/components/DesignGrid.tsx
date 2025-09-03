@@ -284,42 +284,35 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [activeCategory, contentType, isLoading, loadDesigns]);
+  }, [activeCategory, contentType, isLoading]);
 
-  // Set up intersection observer for infinite scroll
+  // Set up intersection observer for infinite loading
   useEffect(() => {
-    if (!hasMore || isLoading || requestInProgress.current) return;
-    
-    const observerCallback: IntersectionObserverCallback = (entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && !isLoading && hasMore) {
+    if (!showLoadMore || !loadMoreRef.current || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
           setPage(prevPage => {
-            if (!isLoading) {
-              loadDesigns(prevPage + 1);
-              return prevPage + 1;
-            }
-            return prevPage;
+            const nextPage = prevPage + 1;
+            loadDesigns(nextPage);
+            return nextPage;
           });
         }
-      });
-    };
-    
-    const currentObserver = new IntersectionObserver(observerCallback, {
-      root: null,
-      rootMargin: '100px',
-      threshold: 0.1,
-    });
-    
+      },
+      { threshold: 0.1 }
+    );
+
     const currentRef = loadMoreRef.current;
     if (currentRef) {
-      currentObserver.observe(currentRef);
+      observer.observe(currentRef);
     }
     
     return () => {
       if (currentRef) {
-        currentObserver.unobserve(currentRef);
+        observer.unobserve(currentRef);
       }
-      currentObserver.disconnect();
+      observer.disconnect();
     };
   }, [hasMore, isLoading, loadDesigns]);
 

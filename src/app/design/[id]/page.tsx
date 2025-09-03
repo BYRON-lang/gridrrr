@@ -1,8 +1,39 @@
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { fetchDesignById } from '@/lib/supabase/designs';
+import { Metadata } from 'next';
 
 export const revalidate = 3600; // Revalidate at most every hour
+
+// Generate metadata for the page
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const design = await fetchDesignById(params.id);
+
+  if (!design) {
+    return {
+      title: 'Design Not Found | Gridrr',
+      description: 'The requested design could not be found.',
+    };
+  }
+
+  return {
+    title: `${design.title} by ${design.designer_name} | Gridrr`,
+    description: design.description || `Check out ${design.title} by ${design.designer_name} on Gridrr - a curated collection of design inspirations.`,
+    openGraph: {
+      title: `${design.title} by ${design.designer_name} | Gridrr`,
+      description: design.description || `Check out ${design.title} by ${design.designer_name} on Gridrr - a curated collection of design inspirations.`,
+      type: 'website',
+      url: `https://gridrr.com/design/${params.id}`,
+      images: design.image_url ? [design.image_url] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${design.title} by ${design.designer_name} | Gridrr`,
+      description: design.description || `Check out ${design.title} by ${design.designer_name} on Gridrr - a curated collection of design inspirations.`,
+      images: design.image_url ? [design.image_url] : [],
+    },
+  };
+}
 
 export default async function DesignDetail({ params }: { params: { id: string } }) {
   const design = await fetchDesignById(params.id);

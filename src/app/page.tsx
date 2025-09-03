@@ -6,6 +6,8 @@ import Filters from '@/components/Filters';
 import DesignGrid from '@/components/DesignGrid';
 import DesignsGrid from '@/components/DesignsGrid';
 import { SubmitWorkModal } from '@/components/SubmitWorkModal';
+import TagsDropdown from '@/components/TagsDropdown';
+import { Metadata } from 'next';
 
 export default function Home() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
@@ -13,6 +15,14 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   return (
     <div className="min-h-screen bg-white">
+      {/* Top Navigation Bar */}
+      <div className="container mx-auto px-4 pt-8">
+        <div className="flex justify-between items-center">
+          <div />
+          <TagsDropdown />
+        </div>
+      </div>
+
       <header className="container mx-auto px-4 pt-32 font-sans">
         <h1 className="text-3xl font-light text-gray-500 mt-2">Gridrr</h1>
         <p className="text-black text-3xl font-semibold max-w-2xl leading-tight">

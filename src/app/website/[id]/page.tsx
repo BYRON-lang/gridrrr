@@ -1,8 +1,39 @@
 import { notFound } from 'next/navigation';
 import { fetchWebsiteById } from '@/lib/supabase/websites';
 import VideoPlayer from './VideoPlayer';
+import { Metadata } from 'next';
 
 export const revalidate = 3600; // Revalidate at most every hour
+
+// Generate metadata for the page
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const website = await fetchWebsiteById(params.id);
+
+  if (!website) {
+    return {
+      title: 'Website Not Found | Gridrr',
+      description: 'The requested website could not be found.',
+    };
+  }
+
+  return {
+    title: website.title,
+    description: website.description || `Check out ${website.title} on Gridrr - a curated collection of design inspirations.`,
+    openGraph: {
+      title: `${website.title} - Gridrr`,
+      description: website.description || `Check out ${website.title} on Gridrr - a curated collection of design inspirations.`,
+      type: 'website',
+      url: `https://gridrr.com/website/${params.id}`,
+      images: website.image_url ? [website.image_url] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${website.title} - Gridrr`,
+      description: website.description || `Check out ${website.title} on Gridrr - a curated collection of design inspirations.`,
+      images: website.image_url ? [website.image_url] : [],
+    },
+  };
+}
 
 export default async function WebsiteDetail({ params }: { params: { id: string } }) {
   const website = await fetchWebsiteById(params.id);

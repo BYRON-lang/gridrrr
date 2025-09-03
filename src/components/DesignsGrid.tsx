@@ -10,12 +10,19 @@ import DesignSkeleton from './DesignSkeleton';
 
 interface DesignsGridProps {
   activeCategory: string;
+  initialDesigns?: Design[];
+  showLoadMore?: boolean;
 }
 
-const DesignsGrid: React.FC<DesignsGridProps> = ({ activeCategory }) => {
+const DesignsGrid: React.FC<DesignsGridProps> = ({ 
+  activeCategory, 
+  initialDesigns = [],
+  showLoadMore = true 
+}) => {
   const [loading, setLoading] = useState(false);
-  const [designs, setDesigns] = useState<Design[]>([]);
+  const [designs, setDesigns] = useState<Design[]>(initialDesigns);
   const [filteredDesigns, setFilteredDesigns] = useState<Design[]>([]);
+  const [hasMore, setHasMore] = useState(showLoadMore);
 
   // Filter designs based on active category
   const filterDesigns = useCallback((designsToFilter: Design[]) => {

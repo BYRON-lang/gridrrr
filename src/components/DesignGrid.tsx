@@ -20,17 +20,43 @@ interface Design extends Website {
 }
 
 interface DesignGridProps {
-  contentType: 'design' | 'website'; // Removed 'all' as per requirements
+  contentType: 'design' | 'website';
   activeCategory: string;
+  initialWebsites?: Website[];
+  showLoadMore?: boolean;
+  showFilter?: boolean;
 }
 
-const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) => {
+const DesignGrid: React.FC<DesignGridProps> = ({ 
+  contentType, 
+  activeCategory, 
+  initialWebsites = [],
+  showLoadMore = true,
+  showFilter = true 
+}) => {
   const [designs, setDesigns] = useState<Design[]>([]);
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(showLoadMore);
   const [isLoading, setIsLoading] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Initialize with initialWebsites if provided
+  useEffect(() => {
+    if (initialWebsites.length > 0) {
+      const initialDesigns = initialWebsites.map(website => ({
+        ...website,
+        type: 'website' as const,
+        author: website.twitter_handle || 'Anonymous',
+        authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
+        views: Math.floor(Math.random() * 1000),
+        likes: Math.floor(Math.random() * 100),
+        date: new Date(website.created_at).toLocaleDateString(),
+        src: website.image_url || '/placeholder.png'
+      }));
+      setDesigns(initialDesigns);
+    }
+  }, [initialWebsites]);
 
   // Fetch and filter designs based on content type and active category
   const loadDesigns = useCallback(async (pageNum: number, reset: boolean = false) => {

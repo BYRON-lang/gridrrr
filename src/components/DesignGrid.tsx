@@ -327,10 +327,8 @@ const DesignGrid: React.FC<DesignGridProps> = ({
 
   if (designs.length === 0 && isLoading) {
     return (
-      <div className="mt-8">
-        <div className="col-span-full flex justify-center py-8">
-          <div className="animate-pulse text-gray-500">Loading websites...</div>
-        </div>
+      <div className="flex justify-center items-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black"></div>
       </div>
     );
   }

@@ -24,15 +24,13 @@ interface DesignGridProps {
   activeCategory: string;
   initialWebsites?: Website[];
   showLoadMore?: boolean;
-  showFilter?: boolean;
 }
 
 const DesignGrid: React.FC<DesignGridProps> = ({ 
   contentType, 
   activeCategory, 
   initialWebsites = [],
-  showLoadMore = true,
-  showFilter = true 
+  showLoadMore = true
 }) => {
   const [designs, setDesigns] = useState<Design[]>([]);
   const [page, setPage] = useState(1);

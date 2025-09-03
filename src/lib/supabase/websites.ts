@@ -132,9 +132,6 @@ export const fetchWebsitesByTag = async (tag: string): Promise<Website[]> => {
   }
 };
 
-interface WebsiteWithTags {
-  tags?: string[] | null;
-}
 
 export const fetchWebsiteTagCounts = async (): Promise<TagCount[]> => {
   console.log('Starting fetchWebsiteTagCounts...');

@@ -114,10 +114,6 @@ export const fetchApprovedDesigns = async (page: number = 1, pageSize: number = 
   }
 };
 
-interface DesignTagCount {
-  tags: string[];
-}
-
 export const fetchDesignsByTag = async (tag: string): Promise<Design[]> => {
   try {
     // First get all approved designs

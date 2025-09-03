@@ -22,7 +22,6 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
   const [loading, setLoading] = useState(false);
   const [designs, setDesigns] = useState<Design[]>(initialDesigns);
   const [filteredDesigns, setFilteredDesigns] = useState<Design[]>([]);
-  const [hasMore, setHasMore] = useState(showLoadMore);
 
   // Filter designs based on active category
   const filterDesigns = useCallback((designsToFilter: Design[]) => {

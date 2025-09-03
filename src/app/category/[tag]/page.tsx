@@ -38,7 +38,6 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
             <DesignGrid 
               initialWebsites={websites}
               showLoadMore={false}
-              showFilter={false}
               contentType="website"
               activeCategory="all"
             />

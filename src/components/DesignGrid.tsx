@@ -9,7 +9,7 @@ import { fetchAllWebsites as fetchApprovedWebsites, Website } from '@/lib/supaba
 type WebsiteWithTags = Omit<Website, 'tags'> & {
   submitted_by?: string;
   tags?: string | string[];
-  [key: string]: any; // For any other potential dynamic properties
+  [key: string]: string | number | boolean | string[] | undefined; // More specific type for dynamic properties
 };
 import Footer from './Footer';
 import DesignItemSkeleton from './DesignItemSkeleton';
@@ -55,7 +55,6 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   const [, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(showLoadMore);
   const [isLoading, setIsLoading] = useState(false);
-  const _observer = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const requestInProgress = useRef<boolean>(false);
 
@@ -195,7 +194,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
         }
 
         // Ensure tags is always an array of strings
-        let tags: string[] = [];
+        const tags: string[] = [];
         const websiteTags = website.tags;
         
         if (websiteTags) {

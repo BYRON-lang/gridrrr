@@ -1,6 +1,11 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import { fetchWebsitesByTag } from '@/lib/supabase/websites';
+import { fetchWebsitesByTag, Website } from '@/lib/supabase/websites';
+
+type WebsiteWithTags = Website & {
+  submitted_by?: string;
+  [key: string]: string | number | boolean | string[] | undefined;
+};
 import { fetchDesignsByTag } from '@/lib/supabase/designs';
 import DesignGrid from '@/components/DesignGrid';
 import DesignsGrid from '@/components/DesignsGrid';
@@ -143,7 +148,7 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
           <Suspense fallback={<div>Loading websites...</div>}>
             {websites.length > 0 ? (
               <DesignGrid 
-                initialWebsites={websites}
+                initialWebsites={websites as unknown as WebsiteWithTags[]}
                 showLoadMore={false}
                 contentType="website"
                 activeCategory={tag}

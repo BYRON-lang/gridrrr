@@ -158,9 +158,27 @@ const DesignGrid: React.FC<DesignGridProps> = ({ contentType, activeCategory }) 
             loop
             muted
             playsInline
+            preload="metadata"
+            webkit-playsinline="true"
+            x5-playsinline="true"
+            x5-video-player-type="h5"
+            x5-video-player-fullscreen="false"
             className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
+            onError={(e) => {
+              console.log('Video error:', e);
+              // Fallback to image if video fails
+              const videoElement = e.target as HTMLVideoElement;
+              videoElement.style.display = 'none';
+            }}
           >
             <source src={design.preview_video_url} type="video/mp4" />
+            <source src={design.preview_video_url} type="video/webm" />
+            {/* Fallback to image if video doesn't load */}
+            <img 
+              src={design.image_url || '/placeholder.jpg'} 
+              alt={design.title}
+              className="w-full h-full object-cover"
+            />
           </video>
         ) : (
           <Image

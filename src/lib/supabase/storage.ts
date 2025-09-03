@@ -13,13 +13,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 // Storage configuration
 export const storageConfig = {
-  bucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || 'gridrr-submissions',
-  region: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_REGION || 'ap-southeast-1',
+  bucket: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET,
+  region: process.env.NEXT_PUBLIC_SUPABASE_STORAGE_REGION,
 };
 
 // Initialize storage bucket
 const initializeStorage = async () => {
   try {
+    if (!storageConfig.bucket) {
+      console.error('Storage bucket not configured');
+      return;
+    }
+
     const { data: buckets, error } = await supabase.storage.listBuckets();
     
     if (error) {
@@ -56,6 +61,10 @@ if (typeof window !== 'undefined') {
 // Upload file to storage
 export const uploadFile = async (file: File, path: string) => {
   try {
+    if (!storageConfig.bucket) {
+      throw new Error('Storage bucket not configured');
+    }
+
     const fileExt = file.name.split('.').pop();
     const fileName = `${path}/${Date.now()}.${fileExt}`;
     

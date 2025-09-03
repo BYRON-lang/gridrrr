@@ -14,7 +14,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       <header className="container mx-auto px-4 pt-32 font-sans">
-        <h1 className="text-3xl font-bold text-gray-500 mt-2">Gridrr</h1>
+        <h1 className="text-3xl font-light text-gray-500 mt-2">Gridrr</h1>
         <p className="text-black text-3xl font-semibold max-w-2xl leading-tight">
           Curated design inspirations<br />
           to transform your ideas<br />

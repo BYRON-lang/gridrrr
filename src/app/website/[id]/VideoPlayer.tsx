@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -15,6 +15,7 @@ export default function VideoPlayer({ videoUrl, title }: VideoPlayerProps) {
   };
 
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const [bgColor] = useState(getRandomPastelColor());
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -22,9 +23,36 @@ export default function VideoPlayer({ videoUrl, title }: VideoPlayerProps) {
   const handleVideoLoad = () => {
     setIsVideoLoaded(true);
     if (videoRef.current) {
-      videoRef.current.play().catch(e => console.log('Autoplay prevented:', e));
+      videoRef.current.play().catch(e => {
+        console.log('Autoplay prevented:', e);
+        // On mobile, show the video even if autoplay fails
+        setIsVideoLoaded(true);
+      });
     }
   };
+
+  // Handle video error
+  const handleVideoError = () => {
+    console.log('Video failed to load');
+    setVideoError(true);
+  };
+
+  // Try to play video on user interaction (mobile workaround)
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      if (videoRef.current && !isVideoLoaded) {
+        videoRef.current.play().catch(e => console.log('Play failed:', e));
+      }
+    };
+
+    document.addEventListener('touchstart', handleUserInteraction, { once: true });
+    document.addEventListener('click', handleUserInteraction, { once: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener('click', handleUserInteraction);
+    };
+  }, [isVideoLoaded]);
 
   return (
     <div className="relative w-full h-full flex items-center justify-center">
@@ -41,17 +69,46 @@ export default function VideoPlayer({ videoUrl, title }: VideoPlayerProps) {
           loop
           muted
           playsInline
+          preload="metadata"
+          webkit-playsinline="true"
+          x5-playsinline="true"
+          x5-video-player-type="h5"
+          x5-video-player-fullscreen="false"
           onLoadedData={handleVideoLoad}
+          onError={handleVideoError}
           aria-label={`Preview of ${title}`}
         />
       </div>
       
       {/* Loading overlay */}
-      {!isVideoLoaded && (
+      {!isVideoLoaded && !videoError && (
         <div 
           className="absolute inset-0"
           style={{ backgroundColor: bgColor }}
         />
+      )}
+
+      {/* Error state - show a play button */}
+      {videoError && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ backgroundColor: bgColor }}
+        >
+          <div className="text-center">
+            <div className="text-gray-500 mb-2">Video unavailable</div>
+            <button 
+              onClick={() => {
+                setVideoError(false);
+                if (videoRef.current) {
+                  videoRef.current.load();
+                }
+              }}
+              className="px-4 py-2 bg-black text-white rounded-full text-sm hover:bg-gray-800 transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

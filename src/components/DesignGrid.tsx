@@ -59,6 +59,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   // Fetch and filter designs based on content type and active category
   const loadDesigns = useCallback(async (pageNum: number, reset: boolean = false) => {
     if (isLoading) return;
+    if (isLoading) return;
     
     console.log(`Fetching page ${pageNum} with content type: ${contentType}, category: ${activeCategory}`);
     setIsLoading(true);
@@ -92,30 +93,24 @@ const DesignGrid: React.FC<DesignGridProps> = ({
         date: new Date(website.created_at).toLocaleDateString(),
       }));
       
-      // Filter designs by active category if not 'all' or 'Filter'
-      let filteredDesigns = [...websiteDesigns];
-      
-      console.log('Before filtering - Total designs:', filteredDesigns.length);
-
-      if (activeCategory && activeCategory !== 'all' && activeCategory !== 'Filter') {
-        console.log('Filtering by category:', activeCategory);
-        filteredDesigns = filteredDesigns.filter(design => {
-          if (!design.tags || !Array.isArray(design.tags)) {
-            return false;
-          }
-          return design.tags.some(tag => 
-            tag.toLowerCase() === activeCategory.toLowerCase()
-          );
-        });
-        
-        console.log('After category filtering - Remaining designs:', filteredDesigns.length);
-      }
+      // Apply category filter if active
+      const filteredDesigns = activeCategory && activeCategory !== 'all' && activeCategory !== 'Filter'
+        ? websiteDesigns.filter(design => {
+            if (!design.tags || !Array.isArray(design.tags)) return false;
+            return design.tags.some(tag => 
+              tag.toLowerCase() === activeCategory.toLowerCase()
+            );
+          })
+        : websiteDesigns;
       
       setDesigns(prev => {
-        // Remove duplicates by ID
+        if (reset) {
+          return filteredDesigns;
+        }
+        // For pagination, only add new designs that aren't already in the list
         const existingIds = new Set(prev.map(design => design.id));
-        const newDesigns = websiteDesigns.filter(design => !existingIds.has(design.id));
-        return reset ? websiteDesigns : [...prev, ...newDesigns];
+        const newDesigns = filteredDesigns.filter(design => !existingIds.has(design.id));
+        return [...prev, ...newDesigns];
       });
       setHasMore(result.hasMore);
     } catch (error) {

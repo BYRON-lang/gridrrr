@@ -65,8 +65,14 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       title: `${website.title} | Gridrr`,
       description: website.description || `Check out ${website.title} on Gridrr - a curated collection of design inspirations.`,
       images: [{
-        url: mediaUrl || website.image_url || '',
+        url: website.image_url 
+          ? website.image_url.startsWith('http') 
+            ? website.image_url 
+            : new URL(website.image_url, baseUrl).toString()
+          : new URL('/og-default.jpg', baseUrl).toString(),
         alt: website.title,
+        width: 1200,
+        height: 630,
       }],
       site: '@gridrr',
       creator: website.twitter_handle ? `@${website.twitter_handle.replace('@', '')}` : '@gridrr',

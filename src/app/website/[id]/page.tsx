@@ -64,20 +64,17 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       card: mediaType === 'video' ? 'player' : 'summary_large_image',
       title: `${website.title} | Gridrr`,
       description: website.description || `Check out ${website.title} on Gridrr - a curated collection of design inspirations.`,
-      ...(mediaUrl && {
-        [mediaType === 'video' ? 'player' : 'images']: [
-          mediaType === 'video' 
-            ? {
-                url: mediaUrl,
-                width: 1280,
-                height: 720,
-                stream: mediaUrl,
-              }
-            : mediaUrl,
-        ],
-      }),
-      site: '@gridrr',
-      creator: website.twitter_handle ? `@${website.twitter_handle.replace('@', '')}` : '@gridrr',
+      ...(mediaType === 'video' && mediaUrl ? {
+        'player:url': mediaUrl,
+        'player:width': '1280',
+        'player:height': '720',
+        'player:stream': mediaUrl,
+        'image': website.image_url || '', // Fallback image
+      } : mediaUrl ? {
+        'image': mediaUrl,
+      } : {}),
+      'site': '@gridrr',
+      'creator': website.twitter_handle ? `@${website.twitter_handle.replace('@', '')}` : '@gridrr',
     },
   };
 

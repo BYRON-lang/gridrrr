@@ -8,31 +8,74 @@ export const revalidate = 3600; // Revalidate at most every hour
 // Generate metadata for the page
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const design = await fetchDesignById(params.id);
+  const baseUrl = 'https://gridrr.com';
+  const pageUrl = `${baseUrl}/design/${params.id}`;
+  const designerName = design?.designer_name || 'Unknown Designer';
+  const title = design?.title || 'Untitled Design';
+  const description = design?.description || `Check out ${title} by ${designerName} on Gridrr - a curated collection of design inspirations.`;
 
   if (!design) {
     return {
       title: 'Design Not Found | Gridrr',
       description: 'The requested design could not be found.',
+      openGraph: {
+        title: 'Design Not Found | Gridrr',
+        description: 'The requested design could not be found.',
+        images: [`${baseUrl}/og-default.jpg`],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'Design Not Found | Gridrr',
+        description: 'The requested design could not be found.',
+        images: [`${baseUrl}/og-default.jpg`],
+      },
     };
   }
 
-  return {
-    title: `${design.title} by ${design.designer_name} | Gridrr`,
-    description: design.description || `Check out ${design.title} by ${design.designer_name} on Gridrr - a curated collection of design inspirations.`,
+  const metadata: Metadata = {
+    title: `${title} by ${designerName} | Gridrr`,
+    description: description,
+    alternates: {
+      canonical: pageUrl,
+    },
     openGraph: {
-      title: `${design.title} by ${design.designer_name} | Gridrr`,
-      description: design.description || `Check out ${design.title} by ${design.designer_name} on Gridrr - a curated collection of design inspirations.`,
-      type: 'website',
-      url: `https://gridrr.com/design/${params.id}`,
-      images: design.image_url ? [design.image_url] : [],
+      title: `${title} by ${designerName} | Gridrr`,
+      description: description,
+      type: 'article',
+      url: pageUrl,
+      siteName: 'Gridrr',
+      publishedTime: design.created_at,
+      modifiedTime: design.updated_at || design.created_at,
+      ...(design.image_url && {
+        images: [
+          {
+            url: design.image_url,
+            width: 1200,
+            height: 630,
+            alt: title,
+          },
+        ],
+      }),
+      ...(design.tags && design.tags.length > 0 && {
+        tags: Array.isArray(design.tags) ? design.tags : [design.tags],
+      }),
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${design.title} by ${design.designer_name} | Gridrr`,
-      description: design.description || `Check out ${design.title} by ${design.designer_name} on Gridrr - a curated collection of design inspirations.`,
-      images: design.image_url ? [design.image_url] : [],
+      title: `${title} by ${designerName} | Gridrr`,
+      description: description,
+      ...(design.image_url && {
+        images: [design.image_url],
+      }),
+      site: '@gridrr',
+      creator: design.twitter_handle ? `@${design.twitter_handle.replace('@', '')}` : '@gridrr',
     },
+    ...(design.created_at && {
+      publishDate: new Date(design.created_at).toISOString(),
+    }),
   };
+
+  return metadata;
 }
 
 export default async function DesignDetail({ params }: { params: { id: string } }) {

@@ -8,31 +8,80 @@ export const revalidate = 3600; // Revalidate at most every hour
 // Generate metadata for the page
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const website = await fetchWebsiteById(params.id);
+  const baseUrl = 'https://gridrr.com';
+  const pageUrl = `${baseUrl}/website/${params.id}`;
 
   if (!website) {
     return {
       title: 'Website Not Found | Gridrr',
       description: 'The requested website could not be found.',
+      openGraph: {
+        title: 'Website Not Found | Gridrr',
+        description: 'The requested website could not be found.',
+        images: [`${baseUrl}/og-default.jpg`],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: 'Website Not Found | Gridrr',
+        description: 'The requested website could not be found.',
+        images: [`${baseUrl}/og-default.jpg`],
+      },
     };
   }
 
-  return {
-    title: website.title,
+  // Use video URL if available, otherwise use image URL
+  const mediaUrl = website.preview_video_url || website.image_url;
+  const mediaType = website.preview_video_url ? 'video' : 'image';
+
+  const metadata: Metadata = {
+    title: `${website.title} | Gridrr`,
     description: website.description || `Check out ${website.title} on Gridrr - a curated collection of design inspirations.`,
+    alternates: {
+      canonical: pageUrl,
+    },
     openGraph: {
-      title: `${website.title} - Gridrr`,
+      title: `${website.title} | Gridrr`,
       description: website.description || `Check out ${website.title} on Gridrr - a curated collection of design inspirations.`,
       type: 'website',
-      url: `https://gridrr.com/website/${params.id}`,
-      images: website.image_url ? [website.image_url] : [],
+      url: pageUrl,
+      siteName: 'Gridrr',
+      ...(mediaUrl && {
+        [mediaType === 'video' ? 'videos' : 'images']: [
+          {
+            url: mediaUrl,
+            width: 1200,
+            height: 630,
+            alt: website.title,
+            ...(mediaType === 'video' ? {
+              type: 'video/mp4',
+              secureUrl: mediaUrl,
+            } : {}),
+          },
+        ],
+      }),
     },
     twitter: {
-      card: 'summary_large_image',
-      title: `${website.title} - Gridrr`,
+      card: mediaType === 'video' ? 'player' : 'summary_large_image',
+      title: `${website.title} | Gridrr`,
       description: website.description || `Check out ${website.title} on Gridrr - a curated collection of design inspirations.`,
-      images: website.image_url ? [website.image_url] : [],
+      ...(mediaUrl && {
+        [mediaType === 'video' ? 'player' : 'images']: [
+          mediaType === 'video' 
+            ? {
+                url: mediaUrl,
+                width: 1280,
+                height: 720,
+                stream: mediaUrl,
+              }
+            : mediaUrl,
+        ],
+      }),
+      site: '@gridrr',
+      creator: website.twitter_handle ? `@${website.twitter_handle.replace('@', '')}` : '@gridrr',
     },
   };
+
+  return metadata;
 }
 
 export default async function WebsiteDetail({ params }: { params: { id: string } }) {

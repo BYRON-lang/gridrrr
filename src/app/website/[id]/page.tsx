@@ -61,20 +61,15 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       }),
     },
     twitter: {
-      card: mediaType === 'video' ? 'player' : 'summary_large_image',
+      card: 'summary_large_image',
       title: `${website.title} | Gridrr`,
       description: website.description || `Check out ${website.title} on Gridrr - a curated collection of design inspirations.`,
-      ...(mediaType === 'video' && mediaUrl ? {
-        'player:url': mediaUrl,
-        'player:width': '1280',
-        'player:height': '720',
-        'player:stream': mediaUrl,
-        'image': website.image_url || '', // Fallback image
-      } : mediaUrl ? {
-        'image': mediaUrl,
-      } : {}),
-      'site': '@gridrr',
-      'creator': website.twitter_handle ? `@${website.twitter_handle.replace('@', '')}` : '@gridrr',
+      images: [{
+        url: mediaUrl || website.image_url || '',
+        alt: website.title,
+      }],
+      site: '@gridrr',
+      creator: website.twitter_handle ? `@${website.twitter_handle.replace('@', '')}` : '@gridrr',
     },
   };
 

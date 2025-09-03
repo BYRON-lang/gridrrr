@@ -17,7 +17,7 @@ export interface Website {
   instagram_handle?: string;
   created_at: string;
   updated_at: string;
-  tags?: string[];
+  tags?: string | string[];
   image_url?: string;
 }
 
@@ -37,7 +37,13 @@ export const fetchAllWebsites = async (page: number = 1, pageSize: number = 12) 
     }
 
     // Process and log each website's data
-    const processedData = (data || []).map((website: any) => {
+    const processedData = (data || []).map((website: Omit<Website, 'id' | 'created_at' | 'updated_at' | 'tags' | 'submitted_by'> & { 
+      id?: string; 
+      created_at?: string; 
+      updated_at?: string;
+      tags?: string | string[];
+      submitted_by?: string;
+    }) => {
       // Handle both array and string formats for tags
       let tags: string[] = [];
       
@@ -46,7 +52,7 @@ export const fetchAllWebsites = async (page: number = 1, pageSize: number = 12) 
         tags = website.tags.filter((tag: unknown): tag is string => 
           typeof tag === 'string' && tag.trim() !== ''
         );
-      } else if (typeof website.tags === 'string') {
+      } else if (website.tags && typeof website.tags === 'string') {
         // If it's a string, split by comma and clean up
         tags = website.tags
           .split(',')

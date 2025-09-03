@@ -5,11 +5,29 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRightIcon } from '@heroicons/react/24/outline';
 import { fetchAllWebsites as fetchApprovedWebsites, Website } from '@/lib/supabase/websites';
+
+type WebsiteWithTags = Omit<Website, 'tags'> & {
+  submitted_by?: string;
+  tags?: string | string[];
+  [key: string]: any; // For any other potential dynamic properties
+};
 import Footer from './Footer';
 import DesignItemSkeleton from './DesignItemSkeleton';
 
 // Base design interface that extends Website with additional UI-specific properties
-interface Design extends Website {
+interface Design {
+  id: string;
+  title: string;
+  url: string;
+  description?: string;
+  built_with?: string;
+  preview_video_url: string;
+  twitter_handle?: string;
+  instagram_handle?: string;
+  created_at: string;
+  updated_at: string;
+  tags: string[];
+  image_url?: string;
   type: 'design' | 'website';
   author: string;
   authorAvatar: string;
@@ -17,12 +35,13 @@ interface Design extends Website {
   likes: number;
   date: string;
   src: string;
+  submitted_by?: string;
 }
 
 interface DesignGridProps {
   contentType: 'design' | 'website';
   activeCategory: string;
-  initialWebsites?: Website[];
+  initialWebsites?: WebsiteWithTags[];
   showLoadMore?: boolean;
 }
 
@@ -33,26 +52,68 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   showLoadMore = true
 }) => {
   const [designs, setDesigns] = useState<Design[]>([]);
-  const [page, setPage] = useState(1);
+  const [, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(showLoadMore);
   const [isLoading, setIsLoading] = useState(false);
-  const observer = useRef<IntersectionObserver | null>(null);
+  const _observer = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const requestInProgress = useRef<boolean>(false);
 
   // Initialize with initialWebsites if provided
   useEffect(() => {
     if (initialWebsites.length > 0) {
-      const initialDesigns = initialWebsites.map(website => ({
-        ...website,
-        type: 'website' as const,
-        author: website.twitter_handle || 'Anonymous',
-        authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
-        views: Math.floor(Math.random() * 1000),
-        likes: Math.floor(Math.random() * 100),
-        date: new Date(website.created_at).toLocaleDateString(),
-        src: website.image_url || '/placeholder.png'
-      }));
+      const initialDesigns = initialWebsites.map((website: WebsiteWithTags) => {
+        // Safely handle tags which could be string, string[], or undefined
+        const tags: string[] = [];
+        const websiteTags = website.tags;
+        
+        if (websiteTags) {
+          // Handle array of tags
+          if (Array.isArray(websiteTags)) {
+            websiteTags.forEach(tag => {
+              if (typeof tag === 'string' && tag.trim() !== '') {
+                tags.push(tag.trim());
+              }
+            });
+          } 
+          // Handle string of tags (comma-separated)
+          else if (typeof websiteTags === 'string') {
+            const tagStrings = websiteTags.split(',');
+            tagStrings.forEach(tag => {
+              const trimmed = tag.trim();
+              if (trimmed) {
+                tags.push(trimmed);
+              }
+            });
+          }
+        }
+        
+        return {
+          id: website.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+          title: website.title || 'Untitled',
+          url: website.url || '#',
+          description: website.description,
+          built_with: website.built_with,
+          preview_video_url: website.preview_video_url || '',
+          twitter_handle: website.twitter_handle,
+          instagram_handle: website.instagram_handle,
+          created_at: website.created_at || new Date().toISOString(),
+          updated_at: website.updated_at || new Date().toISOString(),
+          image_url: website.image_url,
+          type: 'website' as const,
+          src: website.preview_video_url || website.image_url || '/placeholder.jpg',
+          tags: tags,
+          author: website.submitted_by || 'Anonymous',
+          authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
+          views: Math.floor(Math.random() * 1000),
+          likes: Math.floor(Math.random() * 100),
+          date: website.created_at 
+            ? new Date(website.created_at).toLocaleDateString() 
+            : new Date().toLocaleDateString(),
+          submitted_by: website.submitted_by
+        };
+      });
+      
       setDesigns(initialDesigns);
     }
   }, [initialWebsites]);
@@ -128,30 +189,60 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       
       // Map the API response to Design objects
       const websiteDesigns: Design[] = result.data.map(website => {
+        if (!website.id) {
+          console.warn('Website missing ID, skipping:', website);
+          return null;
+        }
+
         // Ensure tags is always an array of strings
         let tags: string[] = [];
-        if (Array.isArray(website.tags)) {
-          tags = website.tags.filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '');
-        } else if (typeof website.tags === 'string') {
-          // Handle case where tags might be a comma-separated string
-          tags = website.tags
-            .split(',')
-            .map((tag: string) => tag.trim())
-            .filter((tag: string) => tag !== '');
+        const websiteTags = website.tags;
+        
+        if (websiteTags) {
+          if (Array.isArray(websiteTags)) {
+            // Handle array of tags
+            websiteTags.forEach(tag => {
+              if (typeof tag === 'string' && tag.trim() !== '') {
+                tags.push(tag.trim());
+              }
+            });
+          } else if (typeof websiteTags === 'string') {
+            // Handle comma-separated string of tags
+            const tagStrings = (websiteTags as string).split(',');
+            tagStrings.forEach(tag => {
+              const trimmed = tag.trim();
+              if (trimmed) {
+                tags.push(trimmed);
+              }
+            });
+          }
         }
         
-        return {
-          ...website,
-          type: 'website' as const,
+        const design: Design = {
+          id: website.id,
+          title: website.title || 'Untitled',
+          url: website.url || '#',
+          description: website.description,
+          built_with: website.built_with,
+          preview_video_url: website.preview_video_url || '',
+          twitter_handle: website.twitter_handle,
+          instagram_handle: website.instagram_handle,
+          created_at: website.created_at || new Date().toISOString(),
+          updated_at: website.updated_at || new Date().toISOString(),
+          image_url: website.image_url,
+          type: 'website',
           src: website.preview_video_url || website.image_url || '/placeholder.jpg',
           tags: tags,
           author: website.submitted_by || 'Anonymous',
           authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
           views: 0,
           likes: 0,
-          date: new Date(website.created_at).toLocaleDateString(),
+          date: website.created_at ? new Date(website.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+          submitted_by: website.submitted_by
         };
-      });
+        
+        return design;
+      }).filter((design): design is Design => design !== null);
       
       // Store all fetched designs, we'll filter them in the render
       setDesigns(prev => {
@@ -164,14 +255,14 @@ const DesignGrid: React.FC<DesignGridProps> = ({
         return [...prev, ...newDesigns];
       });
       
-      setHasMore(result.hasMore && result.data.length === pageSize);
-    } catch (error) {
+      setHasMore(!!(result.hasMore && result.data.length === pageSize));
+    } catch (_error) {
       // Error is handled by the UI state (isLoading will be set to false)
     } finally {
       setIsLoading(false);
       requestInProgress.current = false;
     }
-  }, [contentType, activeCategory, isLoading, filterDesigns]);
+  }, [isLoading]);
 
   // Reset and reload when activeCategory or contentType changes
   useEffect(() => {
@@ -194,7 +285,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [activeCategory, contentType]);
+  }, [activeCategory, contentType, isLoading, loadDesigns]);
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {

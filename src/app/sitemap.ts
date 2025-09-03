@@ -170,7 +170,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (websites.data) {
       websitePages = websites.data.map((website) => ({
         url: `${baseUrl}/website/${website.id}`,
-        lastModified: new Date(website.created_at),
+        lastModified: website.created_at ? new Date(website.created_at) : new Date(),
         changeFrequency: 'weekly' as const,
         priority: 0.8,
       }));

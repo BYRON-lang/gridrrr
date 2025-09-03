@@ -56,7 +56,7 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
         
         setDesigns(designsWithExtras);
         setFilteredDesigns(filterDesigns(designsWithExtras));
-      } catch (error) {
+      } catch (_error) {
         // Error is handled by the UI state (loading will be set to false)
       } finally {
         setLoading(false);

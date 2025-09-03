@@ -112,34 +112,38 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       }
       
       setDesigns(prev => {
-        if (reset) return filteredDesigns;
-        // Only add new items that don't already exist in the array
-        const existingIds = new Set(prev.map(d => d.id));
-        const newItems = filteredDesigns.filter(d => !existingIds.has(d.id));
-        return [...prev, ...newItems];
+        // Remove duplicates by ID
+        const existingIds = new Set(prev.map(design => design.id));
+        const newDesigns = websiteDesigns.filter(design => !existingIds.has(design.id));
+        return reset ? websiteDesigns : [...prev, ...newDesigns];
       });
-      
-      setPage(pageNum);
-      setHasMore(result.hasMore && result.data.length === pageSize);
+      setHasMore(result.hasMore);
     } catch (error) {
       console.error('Error loading websites:', error);
     } finally {
       setIsLoading(false);
     }
   }, [contentType, activeCategory, isLoading]);
-  
+
   // Initial load and reset when filters change
   useEffect(() => {
-    setDesigns([]);
-    setPage(1);
-    setHasMore(true);
+    let isMounted = true;
     
-    const timer = setTimeout(() => {
-      loadDesigns(1, true);
-    }, 0);
+    const loadInitialData = async () => {
+      if (isMounted) {
+        setDesigns([]);
+        setPage(1);
+        setHasMore(true);
+        await loadDesigns(1, true);
+      }
+    };
     
-    return () => clearTimeout(timer);
-  }, [activeCategory, contentType, loadDesigns]);
+    loadInitialData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [activeCategory, contentType]);
   
   // Set up intersection observer for infinite scroll
   useEffect(() => {
@@ -148,29 +152,35 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     const observerCallback: IntersectionObserverCallback = (entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting && !isLoading && hasMore) {
-          loadDesigns(page + 1);
+          setPage(prevPage => {
+            if (!isLoading) {
+              loadDesigns(prevPage + 1);
+              return prevPage + 1;
+            }
+            return prevPage;
+          });
         }
       });
     };
     
-    const options = {
+    const currentObserver = new IntersectionObserver(observerCallback, {
       root: null,
-      rootMargin: '200px',
+      rootMargin: '100px',
       threshold: 0.1,
-    };
+    });
     
-    if (loadMoreRef.current) {
-      const newObserver = new IntersectionObserver(observerCallback, options);
-      newObserver.observe(loadMoreRef.current);
-      observer.current = newObserver;
-      
-      return () => {
-        if (newObserver) {
-          newObserver.disconnect();
-        }
-      };
+    const currentRef = loadMoreRef.current;
+    if (currentRef) {
+      currentObserver.observe(currentRef);
     }
-  }, [hasMore, isLoading, loadDesigns, page]);
+    
+    return () => {
+      if (currentRef) {
+        currentObserver.unobserve(currentRef);
+      }
+      currentObserver.disconnect();
+    };
+  }, [hasMore, isLoading, loadDesigns]);
 
   const renderDesignItem = useCallback((design: Design) => (
     <div className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg">

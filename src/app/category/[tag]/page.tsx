@@ -48,7 +48,6 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
           <Suspense fallback={<div>Loading designs...</div>}>
             <DesignsGrid 
               initialDesigns={designs}
-              showLoadMore={false}
               activeCategory="all"
             />
           </Suspense>

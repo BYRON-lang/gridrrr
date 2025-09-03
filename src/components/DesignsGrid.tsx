@@ -28,18 +28,14 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
       if (activeCategory !== 'all' && activeCategory !== 'Filter' && design.tags) {
         // Since the Design interface defines tags as string[], we can safely use it as an array
         if (!Array.isArray(design.tags)) {
-          // If for some reason tags is not an array, log a warning and don't filter
-          console.warn('Expected tags to be an array but got:', typeof design.tags);
           return false;
         }
         
         // Filter using the tags array directly
-        if (!design.tags.some(tag => 
+        return design.tags.some(tag => 
           typeof tag === 'string' && 
           tag.toLowerCase() === activeCategory.toLowerCase()
-        )) {
-          return false;
-        }
+        );
       }
       
       return true;
@@ -51,27 +47,17 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
     const loadDesigns = async () => {
       try {
         setLoading(true);
-        console.log('Fetching designs...');
         const result = await fetchDesigns();
-        console.log('Designs fetched:', result);
-        
-        if (result.length === 0) {
-          console.log('No designs returned from fetchDesigns');
-        }
         
         const designsWithExtras = result.map(design => ({
           ...design,
           src: design.image_url || '/placeholder.jpg',
         }));
         
-        console.log('Designs with extras:', designsWithExtras);
         setDesigns(designsWithExtras);
-        
-        const filtered = filterDesigns(designsWithExtras);
-        console.log('Filtered designs:', filtered);
-        setFilteredDesigns(filtered);
+        setFilteredDesigns(filterDesigns(designsWithExtras));
       } catch (error) {
-        console.error('Error in loadDesigns:', error);
+        // Error is handled by the UI state (loading will be set to false)
       } finally {
         setLoading(false);
       }
@@ -80,17 +66,9 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
     loadDesigns();
   }, [filterDesigns]);
 
-  // Log when designs or filtered designs change
+  // Update filtered designs when activeCategory or designs change
   useEffect(() => {
-    console.log('Designs state updated:', designs.length, 'designs');
-    console.log('Filtered designs state updated:', filteredDesigns.length, 'designs');
-  }, [designs, filteredDesigns]);
-
-  // Update filtered designs when activeCategory changes
-  useEffect(() => {
-    const filtered = filterDesigns(designs);
-    console.log('Filtered designs:', filtered);
-    setFilteredDesigns(filtered);
+    setFilteredDesigns(filterDesigns(designs));
   }, [activeCategory, designs, filterDesigns]);
 
   const renderDesignItem = (design: Design) => (

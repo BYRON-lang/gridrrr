@@ -40,6 +40,13 @@ export const metadata: Metadata = {
     images: ['/twitter-image.jpg'],
     creator: '@gridrr',
   },
+  manifest: '/manifest.json',
+  themeColor: '#000000',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Gridrr',
+  },
   robots: {
     index: true,
     follow: true,
@@ -55,9 +62,7 @@ export const metadata: Metadata = {
     icon: '/favicon.ico',
     shortcut: '/favicon-16x16.png',
     apple: '/apple-touch-icon.png',
-  },
-  manifest: '/site.webmanifest',
-  themeColor: '#ffffff',
+  }
 };
 
 export default function RootLayout({

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   FunnelIcon,
   RectangleGroupIcon,
@@ -12,7 +12,9 @@ import {
   PhotoIcon,
   VideoCameraIcon,
   CubeIcon,
-  CloudIcon
+  CloudIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 interface FiltersProps {
@@ -28,6 +30,39 @@ const Filters: React.FC<FiltersProps> = ({
   activeCategory = 'all',
   onCategoryChange = () => {}
 }) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
+
+  const checkScrollPosition = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = direction === 'left' ? -300 : 300;
+      scrollContainerRef.current.scrollBy({
+        left: scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScrollPosition);
+      // Initial check
+      checkScrollPosition();
+      return () => {
+        container.removeEventListener('scroll', checkScrollPosition);
+      };
+    }
+  }, []);
   
   useEffect(() => {
     onTypeChange(contentType);
@@ -66,9 +101,25 @@ const Filters: React.FC<FiltersProps> = ({
   ];
 
   return (
-    <div className="mb-8 mt-6">
+    <div className="mb-8 mt-6 relative">
       <div className="flex flex-col space-y-4">
-        <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-3 px-1 sm:px-4 no-scrollbar">
+        <div className="relative">
+          {/* Left Scroll Button */}
+          {showLeftArrow && (
+            <button 
+              onClick={() => scroll('left')}
+              className="absolute left-0 top-1/3 -translate-y-1/2 z-10 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
+              aria-label="Scroll left"
+            >
+              <ChevronLeftIcon className="h-5 w-5 text-gray-700" />
+            </button>
+          )}
+
+          {/* Scrollable Container */}
+          <div 
+            ref={scrollContainerRef}
+            className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-3 px-1 sm:px-4 no-scrollbar scroll-smooth"
+          >
           {/* Content Type Toggle */}
           <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-full flex-shrink-0">
             {(['website', 'design'] as const).map((type) => {
@@ -120,7 +171,19 @@ const Filters: React.FC<FiltersProps> = ({
                 <span>{filter.name}</span>
               </button>
             );
-          })}
+            })}
+          </div>
+
+          {/* Right Scroll Button */}
+          {showRightArrow && (
+            <button 
+              onClick={() => scroll('right')}
+              className="absolute right-0 top-1/3 -translate-y-1/2 z-10 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
+              aria-label="Scroll right"
+            >
+              <ChevronRightIcon className="h-5 w-5 text-gray-700" />
+            </button>
+          )}
         </div>
       </div>
     </div>

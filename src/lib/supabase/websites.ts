@@ -21,10 +21,11 @@ export interface Website {
   image_url?: string;
 }
 
-export const fetchApprovedWebsites = async (page: number = 1, pageSize: number = 12) => {
+export const fetchAllWebsites = async (page: number = 1, pageSize: number = 12) => {
   const from = (page - 1) * pageSize;
   
   try {
+    // Fetch all websites since they're all public
     const { data, error, count } = await supabase
       .from('websites')
       .select('*', { count: 'exact' })
@@ -32,14 +33,38 @@ export const fetchApprovedWebsites = async (page: number = 1, pageSize: number =
       .range(from, from + pageSize - 1);
 
     if (error) {
-      console.error('Error fetching websites:', error);
       throw error;
     }
 
+    // Process and log each website's data
+    const processedData = (data || []).map((website: any) => {
+      // Handle both array and string formats for tags
+      let tags: string[] = [];
+      
+      if (Array.isArray(website.tags)) {
+        // If it's already an array, filter out non-string values
+        tags = website.tags.filter((tag: unknown): tag is string => 
+          typeof tag === 'string' && tag.trim() !== ''
+        );
+      } else if (typeof website.tags === 'string') {
+        // If it's a string, split by comma and clean up
+        tags = website.tags
+          .split(',')
+          .map((tag: string) => tag.trim())
+          .filter((tag: string) => tag !== '');
+      }
+      
+      // Return the processed website object with cleaned tags
+      return {
+        ...website,
+        tags: tags
+      };
+    });
+
     return {
-      data: data || [],
+      data: processedData,
       count: count || 0,
-      hasMore: data ? data.length === pageSize : false,
+      hasMore: (from + (data?.length || 0)) < (count || 0)
     };
   } catch (error) {
     console.error('Error in fetchApprovedWebsites:', error);
@@ -110,22 +135,47 @@ export const fetchWebsitesByTag = async (tag: string): Promise<Website[]> => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    if (!websites) return [];
-
+    if (!websites || websites.length === 0) {
+      return [];
+    }
+    
     // Normalize the search tag to lowercase for case-insensitive comparison
     const normalizedSearchTag = tag.toLowerCase().trim();
     
     // Filter websites that have the specified tag
-    return websites.filter(website => {
-      if (!website.tags) return false;
+    const filteredWebsites = websites.filter(website => {
+      if (!website.tags) {
+        return false;
+      }
       
-      // Handle both string (comma-separated) and array formats
-      const tags = typeof website.tags === 'string' 
-        ? website.tags.split(',').map((t: string) => t.trim().toLowerCase())
-        : website.tags.map((t: string) => t.trim().toLowerCase());
+      // Handle different tag formats and clean them up
+      let tags: string[] = [];
       
-      return tags.includes(normalizedSearchTag);
+      if (typeof website.tags === 'string') {
+        // Handle comma-separated strings with potential spaces after commas
+        tags = website.tags
+          .split(',')
+          .map((t: string) => t.trim())
+          .filter((t: string) => t.length > 0);
+      } else if (Array.isArray(website.tags)) {
+        // Handle array format
+        tags = website.tags
+          .map((t: unknown) => typeof t === 'string' ? t.trim() : '')
+          .filter((t: string) => t.length > 0);
+      }
+      
+      // Convert all tags to lowercase for comparison
+      const normalizedTags = tags.map((t: string) => t.toLowerCase());
+      
+      // Check if any tag matches the search tag (with space/hyphen variations)
+      return normalizedTags.some((tag: string) => 
+        tag === normalizedSearchTag || 
+        tag.replace(/\s+/g, '-') === normalizedSearchTag ||
+        tag.replace(/-/g, ' ') === normalizedSearchTag
+      );
     });
+    
+    return filteredWebsites;
   } catch (error) {
     console.error('Error in fetchWebsitesByTag:', error);
     return [];

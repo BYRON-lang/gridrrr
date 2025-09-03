@@ -9,15 +9,15 @@ export const metadata: Metadata = {
 
 // Define our tag categories
 const industryTags = [
-  'SaaS', 'E-commerce', 'Finance', 'Healthcare', 'Education', 'Technology', 'Marketing', 'Design', 'Startup', 'Agency', 'Nonprofit', 'Real Estate', 'Food & Beverage', 'Fitness', 'Travel', 'Entertainment', 'Media', 'Consulting', 'Legal', 'Manufacturing', 'Retail', 'Fashion', 'Beauty', 'Home Services', 'Automotive'
+  'SaaS', 'E-commerce', 'Finance', 'Healthcare', 'Education', 'Technology', 'Marketing', 'Design', 'Startup', 'Agency', 'Nonprofit', 'Real Estate', 'Food & Beverage', 'Fitness', 'Travel', 'Entertainment', 'Media', 'Consulting', 'Legal', 'Manufacturing', 'Retail', 'Fashion', 'Beauty', 'Home Services', 'Automotive', 'AI', 'UI/UX'
 ];
 
 const productTags = [
-  'Landing Page', 'Dashboard', 'Mobile App', 'Web App', 'Docs', 'Marketing', 'Pricing', 'Auth', 'Onboarding', 'Careers', 'Contact', 'About', 'Case Studies', 'Help Center', 'Knowledge Base', 'Status Page', 'Blog Platform', 'Checkout', 'Booking', 'Directory', 'Newsletter', 'Community'
+  'Landing Page', 'Dashboard', 'Mobile App', 'Web App', 'Blog', 'Portfolio', 'Personal', 'Docs', 'Marketing', 'Pricing', 'Auth', 'Onboarding', 'Careers', 'Contact', 'About', 'Case Studies', 'Help Center', 'Knowledge Base', 'Status Page', 'Blog Platform', 'Checkout', 'Booking', 'Directory', 'Newsletter', 'Community'
 ];
 
 const styleTags = [
-  'Minimal', 'Bold', 'Dark Mode', 'Light Mode', 'Gradient', '3D', 'Illustration', 'Photography', 'Typography', 'Neumorphism', 'Glassmorphism', 'Brutalist', 'Vintage', 'Modern', 'Retro', 'Futuristic', 'Playful', 'Corporate', 'Elegant', 'Hand-drawn', 'Geometric', 'Abstract'
+  'Minimal', 'Bold', 'Dark Mode', 'Light Mode', 'Gradient', '3D', 'Motion', 'Illustration', 'Photography', 'Typography', 'Neumorphism', 'Glassmorphism', 'Brutalist', 'Vintage', 'Modern', 'Retro', 'Futuristic', 'Playful', 'Corporate', 'Elegant', 'Hand-drawn', 'Geometric', 'Abstract', 'Creative'
 ];
 
 // Section component has been moved to a separate client component file

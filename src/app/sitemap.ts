@@ -1,5 +1,5 @@
 import { MetadataRoute } from 'next';
-import { fetchApprovedWebsites } from '@/lib/supabase/websites';
+import { fetchAllWebsites } from '@/lib/supabase/websites';
 import { fetchDesigns } from '@/lib/supabase/designs';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -39,147 +39,124 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Filter pages - these are important for SEO
-  const filterPages = [
-    {
-      url: `${baseUrl}/?type=website`,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/?type=design`,
-      lastModified: new Date(),
-      changeFrequency: 'daily' as const,
-      priority: 0.9,
-    },
-    // Add common category filters
-    {
-      url: `${baseUrl}/?category=landing-page`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/?category=portfolio`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/?category=ecommerce`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/?category=saas`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/?category=blog`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/?category=agency`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.8,
-    },
-  ];
-
-  // Tag-based website pages - these are very important for SEO
+  // Tag-based category pages - these are very important for SEO
   const tagPages = [
     {
-      url: `${baseUrl}/websites/SaaS`,
+      url: `${baseUrl}/category/ai`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/websites/Landing%20Page`,
+      url: `${baseUrl}/category/ui-ux`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/websites/Portfolio`,
+      url: `${baseUrl}/category/3d`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/websites/E-commerce`,
+      url: `${baseUrl}/category/motion`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/websites/Blog`,
+      url: `${baseUrl}/category/photography`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/websites/Agency`,
+      url: `${baseUrl}/category/saas`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/websites/Dashboard`,
+      url: `${baseUrl}/category/landing-page`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/category/portfolio`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/category/ecommerce`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/category/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/category/agency`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/category/dashboard`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/websites/Mobile%20App`,
+      url: `${baseUrl}/category/mobile-app`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/websites/Web%20App`,
+      url: `${baseUrl}/category/web-app`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/websites/Startup`,
+      url: `${baseUrl}/category/startup`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/websites/Corporate`,
+      url: `${baseUrl}/category/corporate`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/websites/Personal`,
+      url: `${baseUrl}/category/personal`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/websites/Creative`,
+      url: `${baseUrl}/category/creative`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/websites/Minimal`,
+      url: `${baseUrl}/category/minimal`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/websites/Modern`,
+      url: `${baseUrl}/category/modern`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
@@ -189,7 +166,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Dynamic website pages
   let websitePages: MetadataRoute.Sitemap = [];
   try {
-    const websites = await fetchApprovedWebsites(1, 1000); // Get all approved websites
+    const websites = await fetchAllWebsites(1, 1000); // Get all websites
     if (websites.data) {
       websitePages = websites.data.map((website) => ({
         url: `${baseUrl}/website/${website.id}`,
@@ -218,5 +195,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('Error fetching designs for sitemap:', error);
   }
 
-  return [...staticPages, ...filterPages, ...tagPages, ...websitePages, ...designPages];
+  return [
+    ...staticPages,
+    ...tagPages,
+    ...websitePages,
+    ...designPages,
+  ];
 }

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRightIcon } from '@heroicons/react/24/outline';
-import { fetchApprovedWebsites, Website } from '@/lib/supabase/websites';
+import { fetchAllWebsites as fetchApprovedWebsites, Website } from '@/lib/supabase/websites';
 import Footer from './Footer';
 import DesignItemSkeleton from './DesignItemSkeleton';
 
@@ -38,6 +38,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const requestInProgress = useRef<boolean>(false);
 
   // Initialize with initialWebsites if provided
   useEffect(() => {
@@ -56,71 +57,123 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     }
   }, [initialWebsites]);
 
-  // Fetch and filter designs based on content type and active category
-  const loadDesigns = useCallback(async (pageNum: number, reset: boolean = false) => {
-    if (isLoading) return;
-    if (isLoading) return;
+  // Filter designs based on active category
+  const filterDesigns = useCallback((designsToFilter: Design[]) => {
+    // If no category is selected or 'all' is selected, show all designs
+    if (!activeCategory || activeCategory === 'all' || activeCategory === 'Filter') {
+      return designsToFilter;
+    }
     
-    console.log(`Fetching page ${pageNum} with content type: ${contentType}, category: ${activeCategory}`);
+    const activeCategoryLower = activeCategory.trim().toLowerCase();
+    
+    return designsToFilter.filter(design => {
+      // If design has no tags, don't show it when a category is selected
+      if (!design.tags || !Array.isArray(design.tags)) {
+        return false;
+      }
+      
+      // Normalize all tags to lowercase and trim whitespace
+      const normalizedTags = design.tags
+        .filter((tag): tag is string => typeof tag === 'string')
+        .map(tag => tag.trim().toLowerCase())
+        .filter(tag => tag !== '');
+      
+      // Check for exact match first, then try partial matches
+      return normalizedTags.some(tag => {
+        // Try exact match
+        if (tag === activeCategoryLower) return true;
+        
+        // Try partial match (either tag contains category or category contains tag)
+        if (tag.includes(activeCategoryLower) || activeCategoryLower.includes(tag)) {
+          return true;
+        }
+        
+        // Try splitting multi-word tags and check each word
+        const tagWords = tag.split(/\s+/);
+        const categoryWords = activeCategoryLower.split(/\s+/);
+        
+        // Check if any word in the tag matches any word in the category
+        return tagWords.some(tagWord => 
+          categoryWords.some(catWord => 
+            tagWord === catWord || 
+            tagWord.includes(catWord) || 
+            catWord.includes(tagWord)
+          )
+        );
+      });
+    });
+  }, [activeCategory]);
+  
+  // Get filtered designs based on active category
+  const filteredDesigns = useMemo(() => {
+    return filterDesigns(designs);
+  }, [designs, filterDesigns]);
+
+  // Fetch designs from the API
+  const loadDesigns = useCallback(async (pageNum: number, reset: boolean = false) => {
+    if (isLoading || requestInProgress.current) {
+      return;
+    }
+    
+    requestInProgress.current = true;
     setIsLoading(true);
     
     try {
-      const pageSize = 12; // Number of items per page
+      const pageSize = 12;
       const result = await fetchApprovedWebsites(pageNum, pageSize);
       
-      console.log('API Response:', {
-        page: pageNum,
-        items: result.data?.length,
-        hasMore: result.hasMore,
-        data: result.data
-      });
-      
       if (result.error) {
-        console.error('Error loading websites:', result.error);
         return;
       }
       
-      // Map all results to website type since we're only showing websites now
-      const websiteDesigns: Design[] = result.data.map(website => ({
-        ...website,
-        type: 'website' as const,
-        src: website.preview_video_url || website.image_url || '/placeholder.jpg',
-        tags: website.tags || [],
-        author: website.submitted_by || 'Anonymous',
-        authorAvatar: '',
-        views: 0,
-        likes: 0,
-        date: new Date(website.created_at).toLocaleDateString(),
-      }));
+      // Map the API response to Design objects
+      const websiteDesigns: Design[] = result.data.map(website => {
+        // Ensure tags is always an array of strings
+        let tags: string[] = [];
+        if (Array.isArray(website.tags)) {
+          tags = website.tags.filter((tag: unknown): tag is string => typeof tag === 'string' && tag.trim() !== '');
+        } else if (typeof website.tags === 'string') {
+          // Handle case where tags might be a comma-separated string
+          tags = website.tags
+            .split(',')
+            .map((tag: string) => tag.trim())
+            .filter((tag: string) => tag !== '');
+        }
+        
+        return {
+          ...website,
+          type: 'website' as const,
+          src: website.preview_video_url || website.image_url || '/placeholder.jpg',
+          tags: tags,
+          author: website.submitted_by || 'Anonymous',
+          authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
+          views: 0,
+          likes: 0,
+          date: new Date(website.created_at).toLocaleDateString(),
+        };
+      });
       
-      // Apply category filter if active
-      const filteredDesigns = activeCategory && activeCategory !== 'all' && activeCategory !== 'Filter'
-        ? websiteDesigns.filter(design => {
-            if (!design.tags || !Array.isArray(design.tags)) return false;
-            return design.tags.some(tag => 
-              tag.toLowerCase() === activeCategory.toLowerCase()
-            );
-          })
-        : websiteDesigns;
-      
+      // Store all fetched designs, we'll filter them in the render
       setDesigns(prev => {
         if (reset) {
-          return filteredDesigns;
+          return websiteDesigns;
         }
         // For pagination, only add new designs that aren't already in the list
-        const existingIds = new Set(prev.map(design => design.id));
-        const newDesigns = filteredDesigns.filter(design => !existingIds.has(design.id));
+        const existingIds = new Set(prev.map((design: Design) => design.id));
+        const newDesigns = websiteDesigns.filter((design: Design) => !existingIds.has(design.id));
         return [...prev, ...newDesigns];
       });
-      setHasMore(result.hasMore);
+      
+      setHasMore(result.hasMore && result.data.length === pageSize);
     } catch (error) {
-      console.error('Error loading websites:', error);
+      // Error is handled by the UI state (isLoading will be set to false)
     } finally {
       setIsLoading(false);
+      requestInProgress.current = false;
     }
-  }, [contentType, activeCategory, isLoading]);
+  }, [contentType, activeCategory, isLoading, filterDesigns]);
 
-  // Initial load and reset when filters change
+  // Reset and reload when activeCategory or contentType changes
   useEffect(() => {
     let isMounted = true;
     
@@ -133,16 +186,19 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       }
     };
     
-    loadInitialData();
+    // Only reload if we're not already loading
+    if (!isLoading) {
+      loadInitialData();
+    }
     
     return () => {
       isMounted = false;
     };
   }, [activeCategory, contentType]);
-  
+
   // Set up intersection observer for infinite scroll
   useEffect(() => {
-    if (!hasMore || isLoading) return;
+    if (!hasMore || isLoading || requestInProgress.current) return;
     
     const observerCallback: IntersectionObserverCallback = (entries) => {
       entries.forEach(entry => {
@@ -178,7 +234,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   }, [hasMore, isLoading, loadDesigns]);
 
   const renderDesignItem = useCallback((design: Design) => (
-    <div className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg">
+    <div key={design.id} className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg">
       <Link href={`/website/${design.id}`} className="block w-full h-full">
         {design.preview_video_url ? (
           <video
@@ -259,13 +315,15 @@ const DesignGrid: React.FC<DesignGridProps> = ({
 
   return (
     <div className="mt-8 pb-24 sm:pb-32">
-      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-        {designs.map((design) => (
-          <div key={design.id} className="w-full">
-            {renderDesignItem(design)}
-          </div>
-        ))}
-      </div>
+      {filteredDesigns.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No designs match the selected filter.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+          {filteredDesigns.map(renderDesignItem)}
+        </div>
+      )}
       
       {/* Loading indicator */}
       {isLoading && (

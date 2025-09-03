@@ -23,36 +23,13 @@ export interface Design {
 }
 
 export const fetchDesigns = async (): Promise<Design[]> => {
-  console.log('Starting fetchDesigns function');
-  
-  // First, let's check if we can access the designs table at all
-  const { data: allData, error: allError } = await supabase
-    .from('designs')
-    .select('count');
-    
-  if (allError) {
-    console.error('Error accessing designs table:', allError);
-    throw allError;
-  }
-  
-  console.log('Total designs in table:', allData);
-  
-  // Now try to fetch approved designs
   const { data, error } = await supabase
     .from('designs')
     .select('*')
-    // Try without the status filter first to see if we get any results
-    // .eq('status', 'approved')
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching designs:', error);
     throw error;
-  }
-  
-  console.log('Designs fetched from Supabase:', data ? data.length : 0);
-  if (data && data.length > 0) {
-    console.log('First design:', data[0]);
   }
 
   return data || [];
@@ -66,7 +43,6 @@ export const fetchDesignById = async (id: string): Promise<Design | null> => {
     .single();
 
   if (error) {
-    console.error(`Error fetching design ${id}:`, error);
     return null;
   }
 
@@ -81,7 +57,6 @@ export const fetchDesignsByUser = async (email: string): Promise<Design[]> => {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error(`Error fetching designs for user ${email}:`, error);
     return [];
   }
 
@@ -100,8 +75,12 @@ export const fetchApprovedDesigns = async (page: number = 1, pageSize: number = 
       .range(from, from + pageSize - 1);
 
     if (error) {
-      console.error('Error fetching approved designs:', error);
-      throw error;
+      return {
+        data: [],
+        count: 0,
+        hasMore: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
     }
 
     return {
@@ -109,36 +88,60 @@ export const fetchApprovedDesigns = async (page: number = 1, pageSize: number = 
       count: count || 0
     };
   } catch (error) {
-    console.error('Error in fetchApprovedDesigns:', error);
     throw error;
   }
 };
 
 export const fetchDesignsByTag = async (tag: string): Promise<Design[]> => {
   try {
-    // First get all approved designs
+    // First get all designs
     const { data: designs, error } = await supabase
       .from('designs')
       .select('*')
-      .eq('status', 'approved');
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
-    if (!designs) return [];
-
+    if (!designs || designs.length === 0) {
+      return [];
+    }
+    
     // Normalize the search tag to lowercase for case-insensitive comparison
     const normalizedSearchTag = tag.toLowerCase().trim();
     
     // Filter designs that have the specified tag
-    return designs.filter(design => {
-      if (!design.tags) return false;
+    const filteredDesigns = designs.filter(design => {
+      if (!design.tags) {
+        return false;
+      }
       
-      // Handle both string (comma-separated) and array formats
-      const tags = typeof design.tags === 'string' 
-        ? design.tags.split(',').map((t: string) => t.trim().toLowerCase())
-        : design.tags.map((t: string) => t.trim().toLowerCase());
+      // Handle different tag formats and clean them up
+      let tags: string[] = [];
       
-      return tags.includes(normalizedSearchTag);
+      if (typeof design.tags === 'string') {
+        // Handle comma-separated strings with potential spaces after commas
+        tags = design.tags
+          .split(',')
+          .map((t: string) => t.trim())
+          .filter((t: string) => t.length > 0);
+      } else if (Array.isArray(design.tags)) {
+        // Handle array format
+        tags = design.tags
+          .map((t: unknown) => typeof t === 'string' ? t.trim() : '')
+          .filter((t: string) => t.length > 0);
+      }
+      
+      // Convert all tags to lowercase for comparison
+      const normalizedTags = tags.map(t => t.toLowerCase());
+      
+      // Check if any tag matches the search tag (with space/hyphen variations)
+      return normalizedTags.some(tag => 
+        tag === normalizedSearchTag || 
+        tag.replace(/\s+/g, '-') === normalizedSearchTag ||
+        tag.replace(/-/g, ' ') === normalizedSearchTag
+      );
     });
+    
+    return filteredDesigns;
   } catch (error) {
     console.error('Error fetching designs by tag:', error);
     return [];

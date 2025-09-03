@@ -121,8 +121,8 @@ export const fetchWebsitesByTag = async (tag: string): Promise<Website[]> => {
       
       // Handle both string (comma-separated) and array formats
       const tags = typeof website.tags === 'string' 
-        ? website.tags.split(',').map(t => t.trim().toLowerCase())
-        : website.tags.map(t => t.trim().toLowerCase());
+        ? website.tags.split(',').map((t: string) => t.trim().toLowerCase())
+        : website.tags.map((t: string) => t.trim().toLowerCase());
       
       return tags.includes(normalizedSearchTag);
     });
@@ -160,7 +160,7 @@ export const fetchWebsiteTagCounts = async (): Promise<TagCount[]> => {
     const tagCounts = new Map<string, number>();
     
     console.log('Processing website tags...');
-    websites.forEach((website: any, index: number) => {
+    websites.forEach((website: { tags: unknown }, index: number) => {
       console.log(`Website ${index + 1}:`, website);
       
       // Handle both string (comma-separated) and array formats
@@ -174,7 +174,7 @@ export const fetchWebsiteTagCounts = async (): Promise<TagCount[]> => {
           .filter((tag: string) => tag.length > 0); // Remove empty strings
       } else if (Array.isArray(website.tags)) {
         // If it's already an array, use it as is
-        tags = website.tags.filter((tag: any) => typeof tag === 'string' && tag.trim().length > 0);
+        tags = (website.tags as string[]).filter((tag: string) => typeof tag === 'string' && tag.trim().length > 0);
       }
       
       console.log(`  Tags for website ${index + 1}:`, tags);

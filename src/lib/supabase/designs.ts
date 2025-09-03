@@ -174,7 +174,7 @@ export const fetchDesignTagCounts = async (): Promise<TagCount[]> => {
     const tagCounts = new Map<string, number>();
     
     console.log('Processing design tags...');
-    designs.forEach((design: any, index: number) => {
+    designs.forEach((design: { tags: unknown }, index: number) => {
       console.log(`Design ${index + 1}:`, design);
       
       // Handle both string (comma-separated) and array formats
@@ -182,13 +182,13 @@ export const fetchDesignTagCounts = async (): Promise<TagCount[]> => {
       
       if (typeof design.tags === 'string') {
         // Split by comma and clean up the tags
-        tags = design.tags
+        tags = (design.tags as string)
           .split(',')
           .map((tag: string) => tag.trim())
           .filter((tag: string) => tag.length > 0); // Remove empty strings
       } else if (Array.isArray(design.tags)) {
         // If it's already an array, use it as is
-        tags = design.tags.filter((tag: any) => typeof tag === 'string' && tag.trim().length > 0);
+        tags = (design.tags as string[]).filter((tag: string) => typeof tag === 'string' && tag.trim().length > 0);
       }
       
       console.log(`  Tags for design ${index + 1}:`, tags);

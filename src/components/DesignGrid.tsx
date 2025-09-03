@@ -128,7 +128,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [contentType, activeCategory, isLoading, hasMore]);
+  }, [contentType, activeCategory, isLoading]);
   
   // Initial load and reset when filters change
   useEffect(() => {
@@ -147,7 +147,6 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   useEffect(() => {
     if (!hasMore || isLoading) return;
     
-    const currentObserver = observer.current;
     const observerCallback: IntersectionObserverCallback = (entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting && !isLoading && hasMore) {
@@ -200,10 +199,12 @@ const DesignGrid: React.FC<DesignGridProps> = ({
             <source src={design.preview_video_url} type="video/mp4" />
             <source src={design.preview_video_url} type="video/webm" />
             {/* Fallback to image if video doesn't load */}
-            <img 
-              src={design.image_url || '/placeholder.jpg'} 
+            <Image
+              src={design.image_url || '/placeholder.jpg'}
               alt={design.title}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 480px) 100vw, (max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33.33vw, 25vw"
             />
           </video>
         ) : (

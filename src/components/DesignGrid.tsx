@@ -60,6 +60,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
 
   // Initialize with initialWebsites if provided
   useEffect(() => {
+    console.log('Initializing with initialWebsites:', initialWebsites.length > 0);
     if (initialWebsites.length > 0) {
       const initialDesigns = initialWebsites.map((website: WebsiteWithTags) => {
         // Safely handle tags which could be string, string[], or undefined
@@ -172,17 +173,22 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   // Fetch designs from the API
   const loadDesigns = useCallback(async (pageNum: number, reset: boolean = false) => {
     if (isLoading || requestInProgress.current) {
+      console.log('Skipping load - already loading or request in progress');
       return;
     }
     
     requestInProgress.current = true;
     setIsLoading(true);
+    console.log('Loading designs, page:', pageNum, 'reset:', reset);
     
     try {
       const pageSize = 12;
+      console.log('Fetching websites from API...');
       const result = await fetchApprovedWebsites(pageNum, pageSize);
+      console.log('API response:', { result });
       
       if (result.error) {
+        console.error('Error fetching websites:', result.error);
         return;
       }
       
@@ -246,15 +252,18 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       // Store all fetched designs, we'll filter them in the render
       setDesigns(prev => {
         if (reset) {
+          console.log('Resetting designs with:', websiteDesigns.length, 'items');
           return websiteDesigns;
         }
         // For pagination, only add new designs that aren't already in the list
-        const existingIds = new Set(prev.map((design: Design) => design.id));
-        const newDesigns = websiteDesigns.filter((design: Design) => !existingIds.has(design.id));
+        const existingIds = new Set(prev.map(design => design.id));
+        const newDesigns = websiteDesigns.filter(design => !existingIds.has(design.id));
+        console.log('Adding', newDesigns.length, 'new designs');
         return [...prev, ...newDesigns];
       });
       
       setHasMore(!!(result.hasMore && result.data.length === pageSize));
+      console.log('hasMore set to:', !!(result.hasMore && result.data.length === pageSize));
     } catch (_error) {
       // Error is handled by the UI state (isLoading will be set to false)
     } finally {

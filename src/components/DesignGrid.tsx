@@ -26,15 +26,15 @@ interface Design {
   instagram_handle?: string;
   created_at: string;
   updated_at: string;
-  tags: string[];
   image_url?: string;
-  type: 'design' | 'website';
+  type: 'website';
+  src: string;
+  tags: string[];
   author: string;
   authorAvatar: string;
   views: number;
   likes: number;
   date: string;
-  src: string;
   submitted_by?: string;
 }
 
@@ -52,17 +52,102 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   showLoadMore = true
 }) => {
   const [designs, setDesigns] = useState<Design[]>([]);
-  const [, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(showLoadMore);
   const [isLoading, setIsLoading] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   const requestInProgress = useRef<boolean>(false);
 
-  // Initialize with initialWebsites if provided
+  // 1. First, define the loadAllDesigns function
+  const loadAllDesigns = useCallback(async () => {
+    if (isLoading || requestInProgress.current) {
+      console.log('Skipping load - already loading or request in progress');
+      return;
+    }
+    
+    requestInProgress.current = true;
+    setIsLoading(true);
+    console.log('Loading all designs...');
+    
+    try {
+      // Use a large page size to fetch all websites at once
+      const pageSize = 1000; // Adjust this number based on your needs
+      console.log('Fetching all websites from API...');
+      const result = await fetchApprovedWebsites(1, pageSize);
+      console.log('API response:', { result });
+      
+      if (result.error) {
+        console.error('Error fetching websites:', result.error);
+        return;
+      }
+      
+      // Map the API response to Design objects
+      const websiteDesigns = result.data.map(website => {
+        if (!website.id) {
+          console.warn('Website missing ID, skipping:', website);
+          return null;
+        }
+
+        // Ensure tags is always an array of strings
+        const tags: string[] = [];
+        const websiteTags = website.tags;
+        
+        if (websiteTags) {
+          if (Array.isArray(websiteTags)) {
+            // Handle array of tags
+            websiteTags.forEach(tag => {
+              if (typeof tag === 'string' && tag.trim() !== '') {
+                tags.push(tag.trim());
+              }
+            });
+          } else if (typeof websiteTags === 'string') {
+            // Handle comma-separated string of tags
+            const tagStrings = (websiteTags as string).split(',');
+            tagStrings.forEach(tag => {
+              const trimmed = tag.trim();
+              if (trimmed) {
+                tags.push(trimmed);
+              }
+            });
+          }
+        }
+        
+        return {
+          id: website.id,
+          title: website.title || 'Untitled',
+          url: website.url || '#',
+          description: website.description,
+          built_with: website.built_with,
+          preview_video_url: website.preview_video_url || '',
+          twitter_handle: website.twitter_handle,
+          instagram_handle: website.instagram_handle,
+          created_at: website.created_at || new Date().toISOString(),
+          updated_at: website.updated_at || new Date().toISOString(),
+          image_url: website.image_url,
+          type: 'website' as const,
+          src: website.preview_video_url || website.image_url || '/placeholder.jpg',
+          tags: tags,
+          author: website.submitted_by || 'Anonymous',
+          authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
+          views: 0,
+          likes: 0,
+          date: website.created_at ? new Date(website.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+          submitted_by: website.submitted_by
+        };
+      }).filter((design): design is NonNullable<typeof design> => design !== null);
+      
+      console.log('Setting', websiteDesigns.length, 'designs');
+      setDesigns(websiteDesigns);
+    } catch (_error) {
+      // Error is handled by the UI state (isLoading will be set to false)
+      console.error('Error loading designs:', _error);
+    } finally {
+      setIsLoading(false);
+      requestInProgress.current = false;
+    }
+  }, [isLoading]);
+
+  // 2. Then use it in the initialization effect
   useEffect(() => {
     console.log('Initializing with initialWebsites:', initialWebsites.length > 0);
     
-    // Only run this effect once on mount
     const initializeData = async () => {
       if (initialWebsites.length > 0) {
         const initialDesigns = initialWebsites.map((website: WebsiteWithTags) => {
@@ -116,15 +201,14 @@ const DesignGrid: React.FC<DesignGridProps> = ({
         });
         
         setDesigns(initialDesigns);
-        setHasMore(false);
       } else if (designs.length === 0) {
-        // Only load if we don't have any designs yet
-        await loadDesigns(1, true);
+        // Load all designs if we don't have any initial data
+        await loadAllDesigns();
       }
     };
 
     initializeData();
-  }, []); // Empty dependency array to run only once on mount
+  }, [initialWebsites, designs.length, loadAllDesigns]);
 
   // Filter designs based on active category
   const filterDesigns = useCallback((designsToFilter: Design[]) => {
@@ -172,158 +256,18 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       });
     });
   }, [activeCategory]);
-  
-  // Get filtered designs based on active category
+
   const filteredDesigns = useMemo(() => {
     return filterDesigns(designs);
   }, [designs, filterDesigns]);
 
   // Fetch designs from the API
-  const loadDesigns = useCallback(async (pageNum: number, reset: boolean = false) => {
-    if (isLoading || requestInProgress.current) {
-      console.log('Skipping load - already loading or request in progress');
-      return;
-    }
-    
-    // Prevent multiple simultaneous requests
-    if (requestInProgress.current) return;
-    requestInProgress.current = true;
-    
-    requestInProgress.current = true;
-    setIsLoading(true);
-    console.log('Loading designs, page:', pageNum, 'reset:', reset);
-    
-    try {
-      const pageSize = 12;
-      console.log('Fetching websites from API...');
-      const result = await fetchApprovedWebsites(pageNum, pageSize);
-      console.log('API response:', { result });
-      
-      if (result.error) {
-        console.error('Error fetching websites:', result.error);
-        return;
-      }
-      
-      // Map the API response to Design objects
-      const websiteDesigns: Design[] = result.data.map(website => {
-        if (!website.id) {
-          console.warn('Website missing ID, skipping:', website);
-          return null;
-        }
 
-        // Ensure tags is always an array of strings
-        const tags: string[] = [];
-        const websiteTags = website.tags;
-        
-        if (websiteTags) {
-          if (Array.isArray(websiteTags)) {
-            // Handle array of tags
-            websiteTags.forEach(tag => {
-              if (typeof tag === 'string' && tag.trim() !== '') {
-                tags.push(tag.trim());
-              }
-            });
-          } else if (typeof websiteTags === 'string') {
-            // Handle comma-separated string of tags
-            const tagStrings = (websiteTags as string).split(',');
-            tagStrings.forEach(tag => {
-              const trimmed = tag.trim();
-              if (trimmed) {
-                tags.push(trimmed);
-              }
-            });
-          }
-        }
-        
-        const design: Design = {
-          id: website.id,
-          title: website.title || 'Untitled',
-          url: website.url || '#',
-          description: website.description,
-          built_with: website.built_with,
-          preview_video_url: website.preview_video_url || '',
-          twitter_handle: website.twitter_handle,
-          instagram_handle: website.instagram_handle,
-          created_at: website.created_at || new Date().toISOString(),
-          updated_at: website.updated_at || new Date().toISOString(),
-          image_url: website.image_url,
-          type: 'website',
-          src: website.preview_video_url || website.image_url || '/placeholder.jpg',
-          tags: tags,
-          author: website.submitted_by || 'Anonymous',
-          authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
-          views: 0,
-          likes: 0,
-          date: website.created_at ? new Date(website.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
-          submitted_by: website.submitted_by
-        };
-        
-        return design;
-      }).filter((design): design is Design => design !== null);
-      
-      // Store all fetched designs, we'll filter them in the render
-      setDesigns(prev => {
-        if (reset) {
-          console.log('Resetting designs with:', websiteDesigns.length, 'items');
-          return websiteDesigns;
-        }
-        // For pagination, only add new designs that aren't already in the list
-        const existingIds = new Set(prev.map(design => design.id));
-        const newDesigns = websiteDesigns.filter(design => !existingIds.has(design.id));
-        console.log('Adding', newDesigns.length, 'new designs');
-        return [...prev, ...newDesigns];
-      });
-      
-      setHasMore(!!(result.hasMore && result.data.length === pageSize));
-      console.log('hasMore set to:', !!(result.hasMore && result.data.length === pageSize));
-    } catch (_error) {
-      // Error is handled by the UI state (isLoading will be set to false)
-    } finally {
-      setIsLoading(false);
-      requestInProgress.current = false;
-    }
-  }, [isLoading]);
-
-  // Reset and reload when activeCategory or contentType changes
+  // Update filtered designs when activeCategory or designs change
   useEffect(() => {
-    if (designs.length > 0) {
-      const reloadData = async () => {
-        setPage(1);
-        await loadDesigns(1, true);
-      };
-      reloadData();
-    }
-  }, [activeCategory, contentType, designs.length, loadDesigns]);
-
-  // Set up intersection observer for infinite loading
-  useEffect(() => {
-    if (!showLoadMore || !loadMoreRef.current || !hasMore) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setPage(prevPage => {
-            const nextPage = prevPage + 1;
-            loadDesigns(nextPage);
-            return nextPage;
-          });
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentRef = loadMoreRef.current;
-    if (currentRef) {
-      observer.observe(currentRef);
-    }
-    
-    return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
-      observer.disconnect();
-    };
-  }, [hasMore, isLoading, loadDesigns]);
+    console.log('Updating filtered designs for category:', activeCategory);
+    // The actual filtering is handled by the useMemo hook below
+  }, [activeCategory, contentType, designs]);
 
   const renderDesignItem = useCallback((design: Design) => (
     <div key={design.id} className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg">
@@ -384,10 +328,8 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   if (designs.length === 0 && isLoading) {
     return (
       <div className="mt-8">
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-          {[...Array(8)].map((_, index) => (
-            <DesignItemSkeleton key={index} index={index} />
-          ))}
+        <div className="col-span-full flex justify-center py-8">
+          <div className="animate-pulse text-gray-500">Loading websites...</div>
         </div>
       </div>
     );
@@ -417,7 +359,6 @@ const DesignGrid: React.FC<DesignGridProps> = ({
         </div>
       )}
       
-      {/* Loading indicator */}
       {isLoading && (
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mt-4">
           {[...Array(4)].map((_, index) => (
@@ -426,8 +367,6 @@ const DesignGrid: React.FC<DesignGridProps> = ({
         </div>
       )}
       
-      {/* Load more trigger */}
-      {hasMore && <div ref={loadMoreRef} className="h-10 w-full" />}
       
       <Footer />
     </div>

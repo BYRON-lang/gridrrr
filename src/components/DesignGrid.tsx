@@ -61,62 +61,70 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   // Initialize with initialWebsites if provided
   useEffect(() => {
     console.log('Initializing with initialWebsites:', initialWebsites.length > 0);
-    if (initialWebsites.length > 0) {
-      const initialDesigns = initialWebsites.map((website: WebsiteWithTags) => {
-        // Safely handle tags which could be string, string[], or undefined
-        const tags: string[] = [];
-        const websiteTags = website.tags;
-        
-        if (websiteTags) {
-          // Handle array of tags
-          if (Array.isArray(websiteTags)) {
-            websiteTags.forEach(tag => {
-              if (typeof tag === 'string' && tag.trim() !== '') {
-                tags.push(tag.trim());
-              }
-            });
-          } 
-          // Handle string of tags (comma-separated)
-          else if (typeof websiteTags === 'string') {
-            const tagStrings = websiteTags.split(',');
-            tagStrings.forEach(tag => {
-              const trimmed = tag.trim();
-              if (trimmed) {
-                tags.push(trimmed);
-              }
-            });
+    
+    // Only run this effect once on mount
+    const initializeData = async () => {
+      if (initialWebsites.length > 0) {
+        const initialDesigns = initialWebsites.map((website: WebsiteWithTags) => {
+          // Safely handle tags which could be string, string[], or undefined
+          const tags: string[] = [];
+          const websiteTags = website.tags;
+          
+          if (websiteTags) {
+            // Handle array of tags
+            if (Array.isArray(websiteTags)) {
+              websiteTags.forEach(tag => {
+                if (typeof tag === 'string' && tag.trim() !== '') {
+                  tags.push(tag.trim());
+                }
+              });
+            } 
+            // Handle string of tags (comma-separated)
+            else if (typeof websiteTags === 'string') {
+              const tagStrings = (websiteTags as string).split(',');
+              tagStrings.forEach(tag => {
+                const trimmed = tag.trim();
+                if (trimmed) {
+                  tags.push(trimmed);
+                }
+              });
+            }
           }
-        }
+          
+          return {
+            id: website.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+            title: website.title || 'Untitled',
+            url: website.url || '#',
+            description: website.description,
+            built_with: website.built_with,
+            preview_video_url: website.preview_video_url || '',
+            twitter_handle: website.twitter_handle,
+            instagram_handle: website.instagram_handle,
+            created_at: website.created_at || new Date().toISOString(),
+            updated_at: website.updated_at || new Date().toISOString(),
+            image_url: website.image_url,
+            type: 'website' as const,
+            src: website.preview_video_url || website.image_url || '/placeholder.jpg',
+            tags: tags,
+            author: website.submitted_by || 'Anonymous',
+            authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
+            views: 0,
+            likes: 0,
+            date: website.created_at ? new Date(website.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+            submitted_by: website.submitted_by
+          };
+        });
         
-        return {
-          id: website.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
-          title: website.title || 'Untitled',
-          url: website.url || '#',
-          description: website.description,
-          built_with: website.built_with,
-          preview_video_url: website.preview_video_url || '',
-          twitter_handle: website.twitter_handle,
-          instagram_handle: website.instagram_handle,
-          created_at: website.created_at || new Date().toISOString(),
-          updated_at: website.updated_at || new Date().toISOString(),
-          image_url: website.image_url,
-          type: 'website' as const,
-          src: website.preview_video_url || website.image_url || '/placeholder.jpg',
-          tags: tags,
-          author: website.submitted_by || 'Anonymous',
-          authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
-          views: Math.floor(Math.random() * 1000),
-          likes: Math.floor(Math.random() * 100),
-          date: website.created_at 
-            ? new Date(website.created_at).toLocaleDateString() 
-            : new Date().toLocaleDateString(),
-          submitted_by: website.submitted_by
-        };
-      });
-      
-      setDesigns(initialDesigns);
-    }
-  }, [initialWebsites]);
+        setDesigns(initialDesigns);
+        setHasMore(false);
+      } else if (designs.length === 0) {
+        // Only load if we don't have any designs yet
+        await loadDesigns(1, true);
+      }
+    };
+
+    initializeData();
+  }, []); // Empty dependency array to run only once on mount
 
   // Filter designs based on active category
   const filterDesigns = useCallback((designsToFilter: Design[]) => {
@@ -176,6 +184,10 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       console.log('Skipping load - already loading or request in progress');
       return;
     }
+    
+    // Prevent multiple simultaneous requests
+    if (requestInProgress.current) return;
+    requestInProgress.current = true;
     
     requestInProgress.current = true;
     setIsLoading(true);
@@ -274,26 +286,14 @@ const DesignGrid: React.FC<DesignGridProps> = ({
 
   // Reset and reload when activeCategory or contentType changes
   useEffect(() => {
-    let isMounted = true;
-    
-    const loadInitialData = async () => {
-      if (isMounted) {
-        setDesigns([]);
+    if (designs.length > 0) {
+      const reloadData = async () => {
         setPage(1);
-        setHasMore(true);
         await loadDesigns(1, true);
-      }
-    };
-    
-    // Only reload if we're not already loading
-    if (!isLoading) {
-      loadInitialData();
+      };
+      reloadData();
     }
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [activeCategory, contentType, isLoading]);
+  }, [activeCategory, contentType, designs.length, loadDesigns]);
 
   // Set up intersection observer for infinite loading
   useEffect(() => {

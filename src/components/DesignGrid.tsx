@@ -139,7 +139,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     }, 0);
     
     return () => clearTimeout(timer);
-  }, [activeCategory, contentType]);
+  }, [activeCategory, contentType, loadDesigns]);
   
   // Set up intersection observer for infinite scroll
   useEffect(() => {

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { fetchWebsitesByTag } from '@/lib/supabase/websites';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowUpRightIcon } from '@heroicons/react/24/outline';
 
 export const revalidate = 3600; // Revalidate at most every hour
@@ -71,18 +72,28 @@ export default async function WebsitesByTag({ params }: { params: { tag: string 
                   >
                     <source src={website.preview_video_url} type="video/mp4" />
                     <source src={website.preview_video_url} type="video/webm" />
-                    <img 
-                      src={website.image_url || '/placeholder.jpg'} 
-                      alt={website.title}
-                      className="w-full h-full object-cover"
-                    />
+                    <div className="w-full h-full relative">
+                      <Image
+                        src={website.image_url || '/placeholder.jpg'}
+                        alt={website.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        priority={false}
+                      />
+                    </div>
                   </video>
                 ) : (
-                  <img
-                    src={website.image_url || '/placeholder.jpg'}
-                    alt={website.title}
-                    className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
-                  />
+                  <div className="w-full h-full relative">
+                    <Image
+                      src={website.image_url || '/placeholder.jpg'}
+                      alt={website.title}
+                      fill
+                      className="object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      priority={false}
+                    />
+                  </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 sm:p-4 flex flex-col justify-between">
                   <div className="flex justify-end">

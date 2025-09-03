@@ -11,13 +11,11 @@ import DesignSkeleton from './DesignSkeleton';
 interface DesignsGridProps {
   activeCategory: string;
   initialDesigns?: Design[];
-  showLoadMore?: boolean;
 }
 
 const DesignsGrid: React.FC<DesignsGridProps> = ({ 
   activeCategory, 
-  initialDesigns = [],
-  showLoadMore = true 
+  initialDesigns = []
 }) => {
   const [loading, setLoading] = useState(false);
   const [designs, setDesigns] = useState<Design[]>(initialDesigns);

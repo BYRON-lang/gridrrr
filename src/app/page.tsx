@@ -7,7 +7,6 @@ import DesignGrid from '@/components/DesignGrid';
 import DesignsGrid from '@/components/DesignsGrid';
 import { SubmitWorkModal } from '@/components/SubmitWorkModal';
 import TagsDropdown from '@/components/TagsDropdown';
-import { Metadata } from 'next';
 
 export default function Home() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);

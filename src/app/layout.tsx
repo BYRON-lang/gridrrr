@@ -66,6 +66,18 @@ export const metadata: Metadata = {
   }
 };
 
+// Add console welcome message
+if (typeof window !== 'undefined') {
+  console.log(
+    "%c🚀 Welcome to Gridrr!",
+    "color: #4f46e5; font-size: 24px; font-weight: bold;"
+  );
+  console.log(
+    "%cThis is a space for design inspiration, not a playground.\nIf you're here to submit your work, please use our submission form.",
+    "color: #6b7280; font-size: 14px; line-height: 1.5;"
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{

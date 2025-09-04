@@ -42,14 +42,12 @@ interface DesignGridProps {
   contentType: 'design' | 'website';
   activeCategory: string;
   initialWebsites?: WebsiteWithTags[];
-  showLoadMore?: boolean;
 }
 
 const DesignGrid: React.FC<DesignGridProps> = ({ 
   contentType, 
   activeCategory, 
-  initialWebsites = [],
-  showLoadMore = true
+  initialWebsites = []
 }) => {
   const [designs, setDesigns] = useState<Design[]>([]);
   const [isLoading, setIsLoading] = useState(false);

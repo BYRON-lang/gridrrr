@@ -14,8 +14,8 @@ interface UseDesignsReturn {
   count: number;
   hasMore: boolean;
   isLoading: boolean;
-  error: any;
-  mutate: () => void;
+  error: Error | null;
+  mutate: (data?: { data: Design[]; count: number; hasMore: boolean }, shouldRevalidate?: boolean) => Promise<{ data: Design[]; count: number; hasMore: boolean } | undefined>;
 }
 
 const fetcher = async (key: string) => {
@@ -63,7 +63,7 @@ export const useInfiniteDesigns = ({
   category,
   enabled = true
 }: Omit<UseDesignsOptions, 'page'> = {}) => {
-  const getKey = (pageIndex: number, previousPageData: any) => {
+  const getKey = (pageIndex: number, previousPageData: { hasMore: boolean } | null) => {
     if (previousPageData && !previousPageData.hasMore) return null;
     return `designs|${pageIndex + 1}|${pageSize}|${category}`;
   };

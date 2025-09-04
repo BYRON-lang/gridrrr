@@ -12,19 +12,17 @@ import DesignSkeleton from './DesignSkeleton';
 
 interface DesignsGridProps {
   activeCategory: string;
-  initialDesigns?: Design[];
 }
 
 const DesignsGrid: React.FC<DesignsGridProps> = ({ 
-  activeCategory, 
-  initialDesigns = []
+  activeCategory 
 }) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Use the infinite loading hook with caching
   const [taggedDesigns, setTaggedDesigns] = React.useState<Design[]>([]);
   const [isLoadingTagged, setIsLoadingTagged] = React.useState(false);
-  const [tagError, setTagError] = React.useState<any>(null);
+  const [tagError, setTagError] = React.useState<Error | null>(null);
 
   // Check if we're filtering by a tag (from category page)
   const isTagFilter = activeCategory && activeCategory !== 'all' && activeCategory !== 'Filter';
@@ -39,8 +37,9 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
           setTaggedDesigns(designs);
           setTagError(null);
         } catch (err) {
-          setTagError(err);
-          console.error('Error fetching designs by tag:', err);
+          const error = err instanceof Error ? err : new Error(String(err));
+          setTagError(error);
+          console.error('Error fetching designs by tag:', error);
         } finally {
           setIsLoadingTagged(false);
         }

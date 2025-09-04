@@ -26,6 +26,7 @@ export const fetchDesigns = async (): Promise<Design[]> => {
   const { data, error } = await supabase
     .from('designs')
     .select('*')
+    .eq('status', 'approved')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -33,6 +34,40 @@ export const fetchDesigns = async (): Promise<Design[]> => {
   }
 
   return data || [];
+};
+
+// Optimized paginated fetch with filtering
+export const fetchDesignsPaginated = async (
+  page: number = 1, 
+  pageSize: number = 20,
+  category?: string
+): Promise<{ data: Design[]; count: number; hasMore: boolean }> => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = supabase
+    .from('designs')
+    .select('*', { count: 'exact' })
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  // Add category filtering if specified
+  if (category && category !== 'all' && category !== 'Filter') {
+    query = query.contains('tags', [category]);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    data: data || [],
+    count: count || 0,
+    hasMore: (count || 0) > to + 1
+  };
 };
 
 export const fetchDesignById = async (id: string): Promise<Design | null> => {

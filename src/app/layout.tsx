@@ -1,3 +1,5 @@
+'use client';
+
 import type { Metadata } from "next";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -65,8 +67,6 @@ export const metadata: Metadata = {
     apple: '/apple-touch-icon.png',
   }
 };
-
-'use client';
 
 import { useEffect } from 'react';
 

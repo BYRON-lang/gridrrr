@@ -66,23 +66,53 @@ export const metadata: Metadata = {
   }
 };
 
-// Add console welcome message
-if (typeof window !== 'undefined') {
-  console.log(
-    "%c🚀 Welcome to Gridrr!",
-    "color: #4f46e5; font-size: 24px; font-weight: bold;"
-  );
-  console.log(
-    "%cThis is a space for design inspiration, not a playground.\nIf you're here to submit your work, please use our submission form.",
-    "color: #6b7280; font-size: 14px; line-height: 1.5;"
-  );
-}
+'use client';
+
+import { useEffect } from 'react';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useEffect(() => {
+    // Suppress console logs in production
+    if (process.env.NODE_ENV === 'production') {
+      const originalConsoleLog = console.log;
+      const originalConsoleWarn = console.warn;
+      const originalConsoleError = console.error;
+      
+      console.log = function() {};
+      console.warn = function() {};
+      console.error = function() {};
+      
+      // Show welcome message
+      console.log = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && args[0].includes('%c🚀 Welcome to Gridrr!')) {
+          originalConsoleLog.apply(console, args);
+        }
+      };
+      
+      // Initial welcome message
+      console.log(
+        "%c🚀 Welcome to Gridrr!",
+        "color: #4f46e5; font-size: 24px; font-weight: bold;"
+      );
+      
+      // Restore original console methods after showing welcome message
+      setTimeout(() => {
+        console.log = process.env.NODE_ENV === 'development' ? originalConsoleLog : function() {};
+        console.warn = process.env.NODE_ENV === 'development' ? originalConsoleWarn : function() {};
+        console.error = process.env.NODE_ENV === 'development' ? originalConsoleError : function() {};
+      }, 1000);
+    } else {
+      // Development mode - show welcome message but keep other logs
+      console.log(
+        "%c🚀 Welcome to Gridrr (Development Mode)",
+        "color: #4f46e5; font-size: 24px; font-weight: bold;"
+      );
+    }
+  }, []);
   return (
     <html lang="en">
       <body className="font-sans antialiased" style={{ fontFamily: 'var(--font-sans)' }}>

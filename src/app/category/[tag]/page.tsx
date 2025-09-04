@@ -149,7 +149,6 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
             {websites.length > 0 ? (
               <DesignGrid 
                 initialWebsites={websites as unknown as WebsiteWithTags[]}
-                showLoadMore={false}
                 contentType="website"
                 activeCategory={tag}
               />
@@ -165,7 +164,6 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
           <Suspense fallback={<div>Loading designs...</div>}>
             {designs.length > 0 ? (
               <DesignsGrid 
-                initialDesigns={designs}
                 activeCategory={tag}
               />
             ) : (

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRightIcon } from '@heroicons/react/24/outline';
@@ -18,11 +18,14 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
   activeCategory 
 }) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadingRef = useRef<HTMLDivElement>(null);
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastDesignRef = useRef<HTMLDivElement>(null);
 
   // Use the infinite loading hook with caching
-  const [taggedDesigns, setTaggedDesigns] = React.useState<Design[]>([]);
-  const [isLoadingTagged, setIsLoadingTagged] = React.useState(false);
-  const [tagError, setTagError] = React.useState<Error | null>(null);
+  const [taggedDesigns, setTaggedDesigns] = useState<Design[]>([]);
+  const [isLoadingTagged, setIsLoadingTagged] = useState(false);
+  const [tagError, setTagError] = useState<Error | null>(null);
 
   // Check if we're filtering by a tag (from category page)
   const isTagFilter = activeCategory && activeCategory !== 'all' && activeCategory !== 'Filter';
@@ -49,6 +52,9 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
     }
   }, [activeCategory, isTagFilter]);
 
+  // Log active category and tag filter status
+  console.log('DesignsGrid - activeCategory:', activeCategory, 'isTagFilter:', isTagFilter);
+
   // Use the standard infinite loading for non-tag filters
   const {
     data: designs,
@@ -61,25 +67,62 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
   } = useInfiniteDesigns({
     pageSize: 20,
     category: !isTagFilter ? (activeCategory === 'all' || activeCategory === 'Filter' ? undefined : activeCategory) : undefined,
+    status: 'all', // Fetch all designs regardless of status
     enabled: !isTagFilter // Only enable infinite loading if not filtering by tag
   });
 
-  // Handle load more with loading state
-  const handleLoadMore = useCallback(async () => {
-    if (hasMore && !hookIsLoadingMore) {
-      setIsLoadingMore(true);
-      await loadMore();
-      setIsLoadingMore(false);
+  // Log designs data when it changes
+  React.useEffect(() => {
+    console.log('Designs data updated:', {
+      designsCount: designs?.length || 0,
+      isLoading,
+      error,
+      hasMore
+    });
+  }, [designs, isLoading, error, hasMore]);
+
+  // Auto-load more when scrolling to bottom
+  useEffect(() => {
+    if (!hasMore || isLoading || isLoadingMore || hookIsLoadingMore) return;
+
+    const handleObserver = (entries: IntersectionObserverEntry[]) => {
+      const target = entries[0];
+      if (target.isIntersecting) {
+        loadMore();
+      }
+    };
+
+    const options = {
+      root: null,
+      rootMargin: '20px',
+      threshold: 0.1,
+    };
+
+    observer.current = new IntersectionObserver(handleObserver, options);
+    
+    if (loadingRef.current) {
+      observer.current.observe(loadingRef.current);
     }
-  }, [hasMore, hookIsLoadingMore, loadMore]);
+
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
+      }
+    };
+  }, [hasMore, isLoading, isLoadingMore, hookIsLoadingMore, loadMore]);
 
   // Memoize filtered designs to prevent unnecessary re-renders
   const filteredDesigns = useMemo(() => {
     const sourceDesigns = isTagFilter ? taggedDesigns : designs;
-    return sourceDesigns.map(design => ({
+    console.log('Filtering designs - isTagFilter:', isTagFilter, 'sourceDesigns count:', sourceDesigns?.length || 0);
+    
+    const result = sourceDesigns.map(design => ({
       ...design,
       src: design.image_url || '/placeholder.jpg',
     }));
+    
+    console.log('Filtered designs result count:', result.length);
+    return result;
   }, [designs, taggedDesigns, isTagFilter]);
 
   const renderDesignItem = useCallback((design: Design) => (
@@ -152,32 +195,32 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
   return (
     <div className="mt-8 pb-24 sm:pb-32">
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-        {filteredDesigns.map((design) => (
-          <div key={design.id}>
+        {filteredDesigns.map((design, index) => (
+          <div 
+            key={design.id} 
+            ref={index === filteredDesigns.length - 1 ? lastDesignRef : null}
+          >
             {renderDesignItem(design)}
           </div>
         ))}
       </div>
       
-      {/* Load more section */}
-      {hasMore && (
+      {/* Loading indicator at the bottom */}
+      {(isLoadingMore || hookIsLoadingMore) && (
         <div className="mt-8 flex justify-center">
-          <button
-            onClick={handleLoadMore}
-            disabled={isLoadingMore || hookIsLoadingMore}
-            className="px-6 py-3 bg-black text-white rounded-full hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            {isLoadingMore || hookIsLoadingMore ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Loading...
-              </div>
-            ) : (
-              `Load More (${count - filteredDesigns.length} remaining)`
-            )}
-          </button>
+          <div className="flex items-center gap-2 text-gray-500">
+            <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+            Loading more designs...
+          </div>
         </div>
       )}
+      
+      {/* Intersection observer target */}
+      <div 
+        ref={loadingRef} 
+        className="h-1 w-full"
+        style={{ marginTop: '-100px', pointerEvents: 'none' }}
+      />
       
       {/* Loading more skeleton */}
       {(isLoadingMore || hookIsLoadingMore) && (

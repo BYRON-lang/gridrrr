@@ -6,6 +6,7 @@ interface UseDesignsOptions {
   page?: number;
   pageSize?: number;
   category?: string;
+  status?: 'approved' | 'pending' | 'rejected' | 'all';
   enabled?: boolean;
 }
 
@@ -19,11 +20,12 @@ interface UseDesignsReturn {
 }
 
 const fetcher = async (key: string) => {
-  const [, page, pageSize, category] = key.split('|');
+  const [, page, pageSize, category, status] = key.split('|');
   return fetchDesignsPaginated(
     parseInt(page) || 1,
     parseInt(pageSize) || 20,
-    category === 'undefined' ? undefined : category
+    category === 'undefined' ? undefined : category,
+    (status as 'approved' | 'pending' | 'rejected' | 'all') || 'all'
   );
 };
 
@@ -31,9 +33,10 @@ export const useDesigns = ({
   page = 1,
   pageSize = 20,
   category,
+  status = 'all',
   enabled = true
 }: UseDesignsOptions = {}): UseDesignsReturn => {
-  const key = enabled ? `designs|${page}|${pageSize}|${category}` : null;
+  const key = enabled ? `designs|${page}|${pageSize}|${category}|${status}` : null;
   
   const { data, error, mutate } = useSWR(
     key,
@@ -61,11 +64,18 @@ export const useDesigns = ({
 export const useInfiniteDesigns = ({
   pageSize = 20,
   category,
+  status = 'all',
   enabled = true
 }: Omit<UseDesignsOptions, 'page'> = {}) => {
-  const getKey = (pageIndex: number, previousPageData: { hasMore: boolean } | null) => {
+  const getKey = (pageIndex: number, previousPageData: any) => {
+    // If we've reached the end, stop fetching
     if (previousPageData && !previousPageData.hasMore) return null;
-    return `designs|${pageIndex + 1}|${pageSize}|${category}`;
+    
+    // First page, we don't have previousPageData
+    if (pageIndex === 0) return `designs|1|${pageSize}|${category}|${status}`;
+    
+    // Add the next page
+    return `designs|${pageIndex + 1}|${pageSize}|${category}|${status}`;
   };
 
   const { data, error, mutate, size, setSize, isValidating } = useSWRInfinite(

@@ -40,27 +40,49 @@ export const fetchDesigns = async (): Promise<Design[]> => {
 export const fetchDesignsPaginated = async (
   page: number = 1, 
   pageSize: number = 20,
-  category?: string
+  category?: string,
+  status: 'approved' | 'pending' | 'rejected' | 'all' = 'all'
 ): Promise<{ data: Design[]; count: number; hasMore: boolean }> => {
+  console.log('fetchDesignsPaginated called with:', { page, pageSize, category, status });
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
+  console.log('Query range:', { from, to });
 
   let query = supabase
     .from('designs')
     .select('*', { count: 'exact' })
-    .eq('status', 'approved')
     .order('created_at', { ascending: false })
     .range(from, to);
+
+  // Add status filtering if not 'all'
+  if (status !== 'all') {
+    query = query.eq('status', status);
+  }
 
   // Add category filtering if specified
   if (category && category !== 'all' && category !== 'Filter') {
     query = query.contains('tags', [category]);
   }
 
+  console.log('Executing query with params:', {
+    status: status !== 'all' ? status : 'all statuses',
+    category: category || 'no category filter'
+  });
+
   const { data, error, count } = await query;
 
   if (error) {
+    console.error('Error in fetchDesignsPaginated:', error);
     throw error;
+  }
+
+  console.log('Query results:', { count, hasMore: (count || 0) > to + 1, items: data?.length || 0 });
+  if (data && data.length > 0) {
+    console.log('First item sample:', { 
+      id: data[0].id, 
+      title: data[0].title, 
+      status: data[0].status 
+    });
   }
 
   return {

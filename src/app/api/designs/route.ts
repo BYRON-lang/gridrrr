@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '20');
     const category = searchParams.get('category') || undefined;
+    const status = searchParams.get('status') as 'approved' | 'pending' | 'rejected' | 'all' || 'all';
 
     // Validate parameters
     if (page < 1 || pageSize < 1 || pageSize > 100) {
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = await fetchDesignsPaginated(page, pageSize, category);
+    const result = await fetchDesignsPaginated(page, pageSize, category, status);
 
     // Set cache headers for better performance
     const response = NextResponse.json(result);

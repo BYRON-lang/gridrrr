@@ -17,7 +17,7 @@ interface DesignsGridProps {
 const DesignsGrid: React.FC<DesignsGridProps> = ({ 
   activeCategory 
 }) => {
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isLoadingMore] = useState(false);
   const loadingRef = useRef<HTMLDivElement>(null);
   const observer = useRef<IntersectionObserver | null>(null);
   const lastDesignRef = useRef<HTMLDivElement>(null);
@@ -58,7 +58,6 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
   // Use the standard infinite loading for non-tag filters
   const {
     data: designs,
-    count,
     hasMore,
     isLoading,
     isLoadingMore: hookIsLoadingMore,

@@ -67,7 +67,13 @@ export const useInfiniteDesigns = ({
   status = 'all',
   enabled = true
 }: Omit<UseDesignsOptions, 'page'> = {}) => {
-  const getKey = (pageIndex: number, previousPageData: any) => {
+  interface PageData {
+    data: Design[];
+    count: number;
+    hasMore: boolean;
+  }
+
+  const getKey = (pageIndex: number, previousPageData: PageData | null) => {
     // If we've reached the end, stop fetching
     if (previousPageData && !previousPageData.hasMore) return null;
     

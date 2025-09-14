@@ -70,11 +70,45 @@ const DesignGrid: React.FC<DesignGridProps> = ({
   activeCategory, 
   initialWebsites = []
 }) => {
-  const [designs, setDesigns] = useState<Design[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [designs, setDesigns] = useState<Design[]>(() => {
+    // Initialize with initialWebsites if provided
+    if (initialWebsites && initialWebsites.length > 0) {
+      return initialWebsites.map(website => ({
+        id: website.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+        title: website.title || 'Untitled',
+        url: website.url || '#',
+        description: website.description || '',
+        built_with: website.built_with || '',
+        preview_video_url: website.preview_video_url || '',
+        twitter_handle: website.twitter_handle || '',
+        instagram_handle: website.instagram_handle || '',
+        created_at: website.created_at || new Date().toISOString(),
+        updated_at: website.updated_at || new Date().toISOString(),
+        image_url: website.image_url || website.preview_video_url || '/placeholder.jpg',
+        type: 'website' as const,
+        src: website.image_url || website.preview_video_url || '/placeholder.jpg',
+        tags: Array.isArray(website.tags) 
+          ? website.tags.filter((t): t is string => typeof t === 'string' && t.trim() !== '')
+          : typeof website.tags === 'string' 
+            ? website.tags.split(',').map(t => t.trim()).filter(Boolean)
+            : [],
+        author: (website as any).submitted_by || 'Anonymous',
+        authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
+        views: 0,
+        likes: 0,
+        date: website.created_at 
+          ? new Date(website.created_at).toLocaleDateString() 
+          : new Date().toLocaleDateString(),
+        submitted_by: (website as any).submitted_by || ''
+      }));
+    }
+    return [];
+  });
+  const [isLoading, setIsLoading] = useState(initialWebsites.length === 0);
+  const [error, setError] = useState<string | null>(null);
   const requestInProgress = useRef<boolean>(false);
 
-  // 1. First, define the loadAllDesigns function
+  // Load all designs from the API
   const loadAllDesigns = useCallback(async () => {
     if (isLoading || requestInProgress.current) {
       console.log('Skipping load - already loading or request in progress');
@@ -83,6 +117,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     
     requestInProgress.current = true;
     setIsLoading(true);
+    setError(null);
     console.log('Loading all designs...');
     
     try {
@@ -167,25 +202,45 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       console.log('Setting', websiteDesigns.length, 'designs');
       setDesigns(websiteDesigns);
     } catch (_error) {
-      console.error('Error loading designs:', _error);
+      const errorMessage = _error instanceof Error ? _error.message : 'Failed to load designs';
+      console.error('Error loading designs:', errorMessage);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
       requestInProgress.current = false;
     }
   }, [isLoading]);
 
-  // 2. Then use it in the initialization effect
+  // Initialize and load designs
   useEffect(() => {
-    console.log('Initializing with initialWebsites:', initialWebsites.length > 0);
+    console.log('Initializing DesignGrid with props:', {
+      hasInitialWebsites: initialWebsites.length > 0,
+      activeCategory,
+      contentType
+    });
     
     const initializeData = async () => {
-      // Always try to load designs, even if we have initialWebsites
-      // This ensures we have the latest data
-      await loadAllDesigns();
+      console.log('Starting data initialization...');
+      try {
+        await loadAllDesigns();
+      } catch (err) {
+        console.error('Error in initializeData:', err);
+      }
     };
 
-    initializeData();
-  }, [loadAllDesigns, initialWebsites.length]);
+    // Only load if we don't have any designs yet
+    if (designs.length === 0) {
+      console.log('No designs found, loading from API...');
+      initializeData();
+    } else {
+      console.log(`Using existing ${designs.length} designs`);
+    }
+    
+    // Cleanup function
+    return () => {
+      console.log('DesignGrid cleanup');
+    };
+  }, [loadAllDesigns, initialWebsites.length, activeCategory, contentType, designs.length]);
 
   // Filter designs based on active category
   const filterDesigns = useCallback((designsToFilter: Design[]) => {
@@ -256,7 +311,11 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     
     const handleImageLoad = useCallback(() => {
       setIsImageLoading(false);
-    }, []);
+      // Only try to show video if there's a video URL and no error
+      if (design.preview_video_url && !videoError) {
+        setShowVideo(true);
+      }
+    }, [design.preview_video_url, videoError]);
 
     // Set up intersection observer for lazy loading
     useEffect(() => {
@@ -295,9 +354,12 @@ const DesignGrid: React.FC<DesignGridProps> = ({
 
     // Handle video playback after loading
     useEffect(() => {
-      if (!shouldLoadVideo || !videoRef.current) return;
+      if (!shouldLoadVideo || !videoRef.current || !design.preview_video_url) return;
 
       const video = videoRef.current;
+      
+      // Reset error state when retrying
+      setVideoError(false);
       
       const startPlayback = () => {
         setTimeout(() => {
@@ -332,9 +394,11 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     }, [shouldLoadVideo, handleImageLoad]);
 
     const handleVideoError = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
-      console.log('Video error:', e);
+      console.error('Video error:', e);
       setVideoError(true);
       setShowVideo(false);
+      // Fall back to image if video fails to load
+      setIsImageLoading(true);
     }, []);
     
     // Add display name for the memoized component
@@ -408,10 +472,31 @@ const DesignGrid: React.FC<DesignGridProps> = ({
 
   const renderDesignItem = useCallback((design: Design) => (
     <DesignItem key={design.id} design={design} />
-  ), []);
+  ), [DesignItem]);
+
+  // Show error state if there was an error
+  if (error) {
+    return (
+      <div className="mt-8 flex flex-col items-center justify-center p-8 text-center">
+        <div className="mb-4 text-red-500">
+          <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Designs</h3>
+        <p className="text-gray-600 mb-4">{error}</p>
+        <button
+          onClick={loadAllDesigns}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   // Show initial loading state with blurry placeholders
-  if (isLoading || !filteredDesigns) {
+  if (isLoading) {
     return (
       <div className="mt-8">
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">

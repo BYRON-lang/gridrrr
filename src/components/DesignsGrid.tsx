@@ -89,35 +89,47 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
   useEffect(() => {
     if (!hasMore || isLoading || isLoadingMore || hookIsLoadingMore) return;
 
+    const currentObserver = observer.current;
+    const currentLoadingRef = loadingRef.current;
+
     const handleObserver = (entries: IntersectionObserverEntry[]) => {
       const target = entries[0];
       if (target.isIntersecting) {
+        console.log('Loading more designs...');
         loadMore();
       }
     };
 
     const options = {
       root: null,
-      rootMargin: '20px',
-      threshold: 0.1,
+      rootMargin: '200px', // Start loading when within 200px of viewport
+      threshold: 0.01,
     };
 
-    observer.current = new IntersectionObserver(handleObserver, options);
+    // Disconnect previous observer if it exists
+    if (currentObserver) {
+      currentObserver.disconnect();
+    }
+
+    // Create new observer
+    const newObserver = new IntersectionObserver(handleObserver, options);
+    observer.current = newObserver;
     
-    if (loadingRef.current) {
-      observer.current.observe(loadingRef.current);
+    // Observe the loading ref if it exists
+    if (currentLoadingRef) {
+      newObserver.observe(currentLoadingRef);
     }
 
     return () => {
-      if (observer.current) {
-        observer.current.disconnect();
+      if (newObserver) {
+        newObserver.disconnect();
       }
     };
   }, [hasMore, isLoading, isLoadingMore, hookIsLoadingMore, loadMore]);
 
   // Memoize filtered designs to prevent unnecessary re-renders
   const filteredDesigns = useMemo(() => {
-    const sourceDesigns = isTagFilter ? taggedDesigns : designs;
+    const sourceDesigns = isTagFilter ? (taggedDesigns || []) : (designs || []);
     console.log('Filtering designs - isTagFilter:', isTagFilter, 'sourceDesigns count:', sourceDesigns?.length || 0);
     
     const result = sourceDesigns.map(design => ({
@@ -240,12 +252,14 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
         </div>
       )}
       
-      {/* Intersection observer target */}
-      <div 
-        ref={loadingRef} 
-        className="h-1 w-full"
-        style={{ marginTop: '-100px', pointerEvents: 'none' }}
-      />
+      {/* Intersection observer target - only render if there are more items to load */}
+      {hasMore && !isLoading && !isLoadingMore && !hookIsLoadingMore && (
+        <div 
+          ref={loadingRef} 
+          className="h-1 w-full"
+          style={{ marginTop: '-100px', pointerEvents: 'none' }}
+        />
+      )}
       
       {/* Loading more placeholders */}
       {(isLoadingMore || hookIsLoadingMore) && (

@@ -47,7 +47,6 @@ interface Design {
   instagram_handle?: string;
   created_at: string;
   updated_at: string;
-  image_url?: string;
   type: 'website';
   src: string;
   tags: string[];
@@ -84,22 +83,21 @@ const DesignGrid: React.FC<DesignGridProps> = ({
         instagram_handle: website.instagram_handle || '',
         created_at: website.created_at || new Date().toISOString(),
         updated_at: website.updated_at || new Date().toISOString(),
-        image_url: website.image_url || website.preview_video_url || '/placeholder.jpg',
         type: 'website' as const,
-        src: website.image_url || website.preview_video_url || '/placeholder.jpg',
+        src: website.preview_video_url || '/placeholder.jpg',
         tags: Array.isArray(website.tags) 
           ? website.tags.filter((t): t is string => typeof t === 'string' && t.trim() !== '')
           : typeof website.tags === 'string' 
             ? website.tags.split(',').map(t => t.trim()).filter(Boolean)
             : [],
-        author: (website as any).submitted_by || 'Anonymous',
+        author: (website as WebsiteWithTags).submitted_by || 'Anonymous',
         authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
         views: 0,
         likes: 0,
         date: website.created_at 
           ? new Date(website.created_at).toLocaleDateString() 
           : new Date().toLocaleDateString(),
-        submitted_by: (website as any).submitted_by || ''
+        submitted_by: (website as WebsiteWithTags).submitted_by || ''
       }));
     }
     return [];
@@ -173,7 +171,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
           // Ensure we have at least a title or URL
           const title = website.title || 'Untitled';
           const url = website.url || '#';
-          const imageUrl = website.image_url || website.preview_video_url || '/placeholder.jpg';
+          const videoUrl = website.preview_video_url || '/placeholder.jpg';
           
           return {
             id: website.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
@@ -186,9 +184,8 @@ const DesignGrid: React.FC<DesignGridProps> = ({
             instagram_handle: website.instagram_handle || '',
             created_at: website.created_at || new Date().toISOString(),
             updated_at: website.updated_at || new Date().toISOString(),
-            image_url: imageUrl,
             type: 'website' as const,
-            src: imageUrl,
+            src: videoUrl,
             tags: tags,
             author: website.submitted_by || 'Anonymous',
             authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
@@ -310,17 +307,6 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     const observerRef = useRef<IntersectionObserver | null>(null);
     
     const handleImageLoad = useCallback(() => {
-      setIsImageLoading(false);
-      // Only try to show video if there's a video URL and no error
-      if (design.preview_video_url && !videoError) {
-        setShowVideo(true);
-      }
-    }, [design.preview_video_url, videoError]);
-
-    // Set up intersection observer for lazy loading
-    useEffect(() => {
-      if (!design.preview_video_url) return;
-
       const options = {
         root: null,
         rootMargin: '200px', // Start loading when within 200px of viewport
@@ -362,22 +348,14 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       setVideoError(false);
       
       const startPlayback = () => {
-        setTimeout(() => {
-          if (video && !video.error) {
-            video.play().catch(error => {
-              console.log('Autoplay prevented:', error);
-              // Fallback to manual play on interaction
-              const playOnInteraction = () => {
-                video.play().catch(console.error);
-                document.removeEventListener('click', playOnInteraction);
-              };
-              document.addEventListener('click', playOnInteraction, { once: true });
-            });
-          }
-        }, 3000);
+        video.play().catch(e => {
+          console.error('Error playing video:', e);
+          setVideoError(true);
+          setShowVideo(false);
+        });
       };
 
-      // Only set up video if it's not already set up
+      // Try to load the video
       if (video.readyState < 2) { // 2 = HAVE_CURRENT_DATA
         video.load();
         video.onloadeddata = () => {
@@ -391,7 +369,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       return () => {
         video.onloadeddata = null;
       };
-    }, [shouldLoadVideo, handleImageLoad]);
+    }, [shouldLoadVideo, handleImageLoad, design.preview_video_url]);
 
     const handleVideoError = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
       console.error('Video error:', e);
@@ -436,7 +414,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
               </video>
             ) : (
               <Image
-                src={design.image_url || '/placeholder.jpg'}
+                src={design.src}
                 alt={design.title}
                 fill
                 className="object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"

@@ -1,10 +1,32 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRightIcon } from '@heroicons/react/24/outline';
 import { fetchAllWebsites as fetchApprovedWebsites, Website } from '@/lib/supabase/websites';
+
+// Loading placeholder with different colors for designs and websites
+const BlurPlaceholder = ({ type = 'website' }: { type?: 'design' | 'website' }) => {
+  const colors = {
+    design: {
+      base: 'bg-indigo-50',
+      gradient: 'from-indigo-100 to-purple-100',
+    },
+    website: {
+      base: 'bg-teal-50',
+      gradient: 'from-teal-100 to-blue-100',
+    }
+  };
+
+  const { base, gradient } = colors[type] || colors.website;
+
+  return (
+    <div className={`aspect-[4/3] ${base} animate-pulse overflow-hidden`}>
+      <div className={`w-full h-full bg-gradient-to-br ${gradient} opacity-80`} />
+    </div>
+  );
+};
 
 type WebsiteWithTags = Omit<Website, 'tags'> & {
   submitted_by?: string;
@@ -76,65 +98,76 @@ const DesignGrid: React.FC<DesignGridProps> = ({
         return;
       }
       
+      if (!result.data || !Array.isArray(result.data)) {
+        console.error('Invalid data format received:', result);
+        return;
+      }
+      
       // Map the API response to Design objects
-      const websiteDesigns = result.data.map(website => {
-        if (!website.id) {
-          console.warn('Website missing ID, skipping:', website);
-          return null;
-        }
-
-        // Ensure tags is always an array of strings
-        const tags: string[] = [];
-        const websiteTags = website.tags;
-        
-        if (websiteTags) {
-          if (Array.isArray(websiteTags)) {
-            // Handle array of tags
-            websiteTags.forEach(tag => {
-              if (typeof tag === 'string' && tag.trim() !== '') {
-                tags.push(tag.trim());
-              }
-            });
-          } else if (typeof websiteTags === 'string') {
-            // Handle comma-separated string of tags
-            const tagStrings = (websiteTags as string).split(',');
-            tagStrings.forEach(tag => {
-              const trimmed = tag.trim();
-              if (trimmed) {
-                tags.push(trimmed);
-              }
-            });
+      const websiteDesigns = result.data
+        .filter(website => {
+          // Skip invalid or incomplete website data
+          if (!website || typeof website !== 'object') return false;
+          return true;
+        })
+        .map(website => {
+          // Ensure tags is always an array of strings
+          const tags: string[] = [];
+          const websiteTags = website.tags;
+          
+          if (websiteTags) {
+            if (Array.isArray(websiteTags)) {
+              // Handle array of tags
+              websiteTags.forEach((tag: unknown) => {
+                if (typeof tag === 'string' && tag.trim() !== '') {
+                  tags.push(tag.trim());
+                }
+              });
+            } else if (typeof websiteTags === 'string') {
+              // Handle comma-separated string of tags
+              const tagString = String(websiteTags);
+              const tagStrings = tagString.split(',');
+              tagStrings.forEach((tag: string) => {
+                const trimmed = tag.trim();
+                if (trimmed) {
+                  tags.push(trimmed);
+                }
+              });
+            }
           }
-        }
-        
-        return {
-          id: website.id,
-          title: website.title || 'Untitled',
-          url: website.url || '#',
-          description: website.description,
-          built_with: website.built_with,
-          preview_video_url: website.preview_video_url || '',
-          twitter_handle: website.twitter_handle,
-          instagram_handle: website.instagram_handle,
-          created_at: website.created_at || new Date().toISOString(),
-          updated_at: website.updated_at || new Date().toISOString(),
-          image_url: website.image_url,
-          type: 'website' as const,
-          src: website.preview_video_url || website.image_url || '/placeholder.jpg',
-          tags: tags,
-          author: website.submitted_by || 'Anonymous',
-          authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
-          views: 0,
-          likes: 0,
-          date: website.created_at ? new Date(website.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
-          submitted_by: website.submitted_by
-        };
-      }).filter((design): design is NonNullable<typeof design> => design !== null);
+          
+          // Ensure we have at least a title or URL
+          const title = website.title || 'Untitled';
+          const url = website.url || '#';
+          const imageUrl = website.image_url || website.preview_video_url || '/placeholder.jpg';
+          
+          return {
+            id: website.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+            title: title,
+            url: url,
+            description: website.description || '',
+            built_with: website.built_with || '',
+            preview_video_url: website.preview_video_url || '',
+            twitter_handle: website.twitter_handle || '',
+            instagram_handle: website.instagram_handle || '',
+            created_at: website.created_at || new Date().toISOString(),
+            updated_at: website.updated_at || new Date().toISOString(),
+            image_url: imageUrl,
+            type: 'website' as const,
+            src: imageUrl,
+            tags: tags,
+            author: website.submitted_by || 'Anonymous',
+            authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
+            views: 0,
+            likes: 0,
+            date: website.created_at ? new Date(website.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+            submitted_by: website.submitted_by || ''
+          };
+        });
       
       console.log('Setting', websiteDesigns.length, 'designs');
       setDesigns(websiteDesigns);
     } catch (_error) {
-      // Error is handled by the UI state (isLoading will be set to false)
       console.error('Error loading designs:', _error);
     } finally {
       setIsLoading(false);
@@ -147,66 +180,13 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     console.log('Initializing with initialWebsites:', initialWebsites.length > 0);
     
     const initializeData = async () => {
-      if (initialWebsites.length > 0) {
-        const initialDesigns = initialWebsites.map((website: WebsiteWithTags) => {
-          // Safely handle tags which could be string, string[], or undefined
-          const tags: string[] = [];
-          const websiteTags = website.tags;
-          
-          if (websiteTags) {
-            // Handle array of tags
-            if (Array.isArray(websiteTags)) {
-              websiteTags.forEach(tag => {
-                if (typeof tag === 'string' && tag.trim() !== '') {
-                  tags.push(tag.trim());
-                }
-              });
-            } 
-            // Handle string of tags (comma-separated)
-            else if (typeof websiteTags === 'string') {
-              const tagStrings = (websiteTags as string).split(',');
-              tagStrings.forEach(tag => {
-                const trimmed = tag.trim();
-                if (trimmed) {
-                  tags.push(trimmed);
-                }
-              });
-            }
-          }
-          
-          return {
-            id: website.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
-            title: website.title || 'Untitled',
-            url: website.url || '#',
-            description: website.description,
-            built_with: website.built_with,
-            preview_video_url: website.preview_video_url || '',
-            twitter_handle: website.twitter_handle,
-            instagram_handle: website.instagram_handle,
-            created_at: website.created_at || new Date().toISOString(),
-            updated_at: website.updated_at || new Date().toISOString(),
-            image_url: website.image_url,
-            type: 'website' as const,
-            src: website.preview_video_url || website.image_url || '/placeholder.jpg',
-            tags: tags,
-            author: website.submitted_by || 'Anonymous',
-            authorAvatar: `https://unavatar.io/twitter/${website.twitter_handle || 'anonymous'}`,
-            views: 0,
-            likes: 0,
-            date: website.created_at ? new Date(website.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
-            submitted_by: website.submitted_by
-          };
-        });
-        
-        setDesigns(initialDesigns);
-      } else if (designs.length === 0) {
-        // Load all designs if we don't have any initial data
-        await loadAllDesigns();
-      }
+      // Always try to load designs, even if we have initialWebsites
+      // This ensures we have the latest data
+      await loadAllDesigns();
     };
 
     initializeData();
-  }, [initialWebsites, designs.length, loadAllDesigns]);
+  }, [loadAllDesigns]); // Removed designs.length and initialWebsites from dependencies to prevent infinite loops
 
   // Filter designs based on active category
   const filterDesigns = useCallback((designsToFilter: Design[]) => {
@@ -267,103 +247,198 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     // The actual filtering is handled by the useMemo hook below
   }, [activeCategory, contentType, designs]);
 
-  const renderDesignItem = useCallback((design: Design) => (
-    <div key={design.id} className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200 rounded-lg">
-      <Link href={`/website/${design.id}`} className="block w-full h-full">
-        {design.preview_video_url ? (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="metadata"
-            webkit-playsinline="true"
-            x5-playsinline="true"
-            x5-video-player-type="h5"
-            x5-video-player-fullscreen="false"
-            className="w-full h-full object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
-            onError={(e) => {
-              console.log('Video error:', e);
-              // Fallback to image if video fails
-              const videoElement = e.target as HTMLVideoElement;
-              videoElement.style.display = 'none';
-            }}
-          >
-            <source src={design.preview_video_url} type="video/mp4" />
-            <source src={design.preview_video_url} type="video/webm" />
-            {/* Fallback to image if video doesn't load */}
-            <Image
-              src={design.image_url || '/placeholder.jpg'}
-              alt={design.title}
-              fill
-              className="object-cover"
-              sizes="(max-width: 480px) 100vw, (max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33.33vw, 25vw"
-            />
-          </video>
-        ) : (
-          <Image
-            src={design.image_url || '/placeholder.jpg'}
-            alt={design.title}
-            fill
-            className="object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
-            sizes="(max-width: 480px) 100vw, (max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33.33vw, 25vw"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 sm:p-4 flex flex-col justify-between">
-          <div className="flex justify-end">
-            <div className="bg-white/90 hover:bg-white text-black p-1.5 rounded-full cursor-pointer transition-all duration-200 hover:scale-110">
-              <ArrowUpRightIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+  const DesignItem = React.memo(({ design }: { design: Design }) => {
+    const [isImageLoading, setIsImageLoading] = useState(true);
+    const [videoError, setVideoError] = useState(false);
+    const [showVideo, setShowVideo] = useState(false);
+    const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const observerRef = useRef<IntersectionObserver | null>(null);
+
+    // Set up intersection observer for lazy loading
+    useEffect(() => {
+      if (!design.preview_video_url) return;
+
+      const options = {
+        root: null,
+        rootMargin: '200px', // Start loading when within 200px of viewport
+        threshold: 0.01
+      };
+
+      const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            setShouldLoadVideo(true);
+            // Disconnect observer after first intersection
+            if (observerRef.current) {
+              observerRef.current.disconnect();
+            }
+          }
+        });
+      };
+
+      observerRef.current = new IntersectionObserver(handleIntersect, options);
+      
+      if (videoRef.current) {
+        observerRef.current.observe(videoRef.current);
+      }
+
+      return () => {
+        if (observerRef.current) {
+          observerRef.current.disconnect();
+        }
+      };
+    }, [design.preview_video_url]);
+
+    // Handle video playback after loading
+    useEffect(() => {
+      if (!shouldLoadVideo || !videoRef.current) return;
+
+      const video = videoRef.current;
+      
+      const startPlayback = () => {
+        setTimeout(() => {
+          if (video && !video.error) {
+            video.play().catch(error => {
+              console.log('Autoplay prevented:', error);
+              // Fallback to manual play on interaction
+              const playOnInteraction = () => {
+                video.play().catch(console.error);
+                document.removeEventListener('click', playOnInteraction);
+              };
+              document.addEventListener('click', playOnInteraction, { once: true });
+            });
+          }
+        }, 3000);
+      };
+
+      // Only set up video if it's not already set up
+      if (video.readyState < 2) { // 2 = HAVE_CURRENT_DATA
+        video.load();
+        video.onloadeddata = () => {
+          handleImageLoad();
+          startPlayback();
+        };
+      } else {
+        startPlayback();
+      }
+
+      return () => {
+        video.onloadeddata = null;
+      };
+    }, [shouldLoadVideo]);
+
+    const handleVideoError = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
+      console.log('Video error:', e);
+      setVideoError(true);
+      setShowVideo(false);
+    }, []);
+
+    const handleImageLoad = useCallback(() => {
+      setIsImageLoading(false);
+    }, []);
+
+    return (
+      <div className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-300 rounded-lg">
+        <Link href={`/website/${design.id}`} className="block w-full h-full">
+          {/* Blur placeholder */}
+          <div className={`absolute inset-0 transition-opacity duration-300 ${isImageLoading ? 'opacity-100' : 'opacity-0'}`}>
+            <BlurPlaceholder type={design.type === 'website' ? 'website' : 'design'} />
+          </div>
+          
+          {/* Video or Image content */}
+          <div className={`relative w-full h-full flex items-center justify-center bg-black transition-opacity duration-300 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}>
+            {showVideo && !videoError ? (
+              <video
+                ref={videoRef}
+                muted
+                loop
+                playsInline
+                preload="none"
+                className="max-w-full max-h-full w-auto h-auto group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
+                onError={handleVideoError}
+                onLoadedData={handleImageLoad}
+                disablePictureInPicture
+                disableRemotePlayback
+              >
+                {shouldLoadVideo && (
+                  <>
+                    <source src={design.preview_video_url} type="video/mp4" />
+                    <source src={design.preview_video_url} type="video/webm" />
+                  </>
+                )}
+              </video>
+            ) : (
+              <Image
+                src={design.image_url || '/placeholder.jpg'}
+                alt={design.title}
+                fill
+                className="object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
+                sizes="(max-width: 480px) 100vw, (max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33.33vw, 25vw"
+                onLoadingComplete={handleImageLoad}
+                loading="lazy"
+              />
+            )}
+          </div>
+          
+          {/* Overlay content */}
+          <div className={`absolute inset-0 p-3 sm:p-4 flex flex-col justify-between transition-all duration-300 ${
+            isImageLoading ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
+          }`}>
+            {/* Arrow in top right corner */}
+            <div className="flex justify-end">
+              <div className="bg-gray-600 hover:bg-gray-700 text-white p-1.5 rounded-3xl cursor-pointer transition-all duration-200 hover:scale-110">
+                <ArrowUpRightIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </div>
+            </div>
+            
+            {/* Title at the bottom left */}
+            <div className="w-full flex justify-start">
+              <div className="bg-gray-600 text-white text-xs font-medium px-3 py-1.5 rounded-3xl w-40 truncate">
+                {design.title}
+              </div>
             </div>
           </div>
-          <div className="text-white">
-            <h3 className="font-medium text-xs sm:text-sm line-clamp-2">{design.title}</h3>
-          </div>
-        </div>
-      </Link>
-    </div>
+        </Link>
+      </div>
+    );
+  });
+
+  const renderDesignItem = useCallback((design: Design) => (
+    <DesignItem key={design.id} design={design} />
   ), []);
 
-  if (designs.length === 0 && isLoading) {
+  // Show initial loading state with blurry placeholders
+  if (isLoading || !filteredDesigns) {
     return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black"></div>
+      <div className="mt-8">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+          {[...Array(8)].map((_, index) => (
+            <BlurPlaceholder key={index} />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (designs.length === 0 && !isLoading) {
+  // Show empty state
+  if (filteredDesigns.length === 0) {
     return (
-      <div className="mt-8 flex justify-center items-center h-64">
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-          {[...Array(8)].map((_, index) => (
-            <DesignItemSkeleton key={index} index={index} />
-          ))}
-        </div>
+      <div className="mt-8 flex flex-col justify-center items-center h-64">
+        <p className="text-gray-500 text-lg">
+          {activeCategory && activeCategory !== 'all' && activeCategory !== 'Filter' 
+            ? `No websites found for category "${activeCategory}".` 
+            : 'No websites found. Please check back later.'}
+        </p>
       </div>
     );
   }
 
   return (
     <div className="mt-8 pb-24 sm:pb-32">
-      {filteredDesigns.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No designs match the selected filter.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-          {filteredDesigns.map(renderDesignItem)}
-        </div>
-      )}
-      
-      {isLoading && (
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mt-4">
-          {[...Array(4)].map((_, index) => (
-            <DesignItemSkeleton key={`skeleton-${index}`} index={index} />
-          ))}
-        </div>
-      )}
-      
-      
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+        {filteredDesigns.map(renderDesignItem)}
+      </div>
       <Footer />
     </div>
   );

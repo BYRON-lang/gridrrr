@@ -8,15 +8,20 @@ interface VideoPlayerProps {
 }
 
 export default function VideoPlayer({ videoUrl, title }: VideoPlayerProps) {
-  // Generate a random pastel color
-  const getRandomPastelColor = () => {
-    const hue = Math.floor(Math.random() * 360);
+  // Use a stable color based on the video URL
+  const getStableColor = (str: string) => {
+    // Simple hash function to generate a consistent number from the URL
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hue = Math.abs(hash) % 360;
     return `hsl(${hue}, 70%, 85%)`;
   };
 
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
-  const [bgColor] = useState(getRandomPastelColor());
+  const [bgColor] = useState(() => getStableColor(videoUrl));
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Handle video load
@@ -59,7 +64,7 @@ export default function VideoPlayer({ videoUrl, title }: VideoPlayerProps) {
       {/* Video with loading state */}
       <div 
         className={`absolute inset-0 transition-opacity duration-300 ${isVideoLoaded ? 'opacity-100' : 'opacity-0'}`}
-        style={{ backgroundColor: bgColor }}
+        style={{ backgroundColor: bgColor, transition: 'opacity 300ms' }}
       >
         <video
           ref={videoRef}
@@ -84,7 +89,10 @@ export default function VideoPlayer({ videoUrl, title }: VideoPlayerProps) {
       {!isVideoLoaded && !videoError && (
         <div 
           className="absolute inset-0"
-          style={{ backgroundColor: bgColor }}
+          style={{ 
+            backgroundColor: bgColor,
+            transition: 'opacity 300ms'
+          }}
         />
       )}
 
@@ -92,7 +100,10 @@ export default function VideoPlayer({ videoUrl, title }: VideoPlayerProps) {
       {videoError && (
         <div 
           className="absolute inset-0 flex items-center justify-center"
-          style={{ backgroundColor: bgColor }}
+          style={{ 
+            backgroundColor: bgColor,
+            transition: 'opacity 300ms'
+          }}
         >
           <div className="text-center">
             <div className="text-gray-500 mb-2">Video unavailable</div>

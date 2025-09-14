@@ -3,12 +3,17 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowUpRightIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon } from '@heroicons/react/24/outline';
 import { Design } from '@/lib/supabase/designs';
 import { useInfiniteDesigns } from '@/lib/hooks/useDesigns';
 import { fetchDesignsByTag } from '@/lib/supabase/designs';
 import Footer from './Footer';
-import DesignSkeleton from './DesignSkeleton';
+// Loading placeholder component
+const BlurPlaceholder = () => (
+  <div className="aspect-[4/3] bg-gray-100 animate-pulse overflow-hidden">
+    <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 opacity-50" />
+  </div>
+);
 
 interface DesignsGridProps {
   activeCategory: string;
@@ -124,33 +129,51 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
     return result;
   }, [designs, taggedDesigns, isTagFilter]);
 
-  const renderDesignItem = useCallback((design: Design) => (
-    <div key={design.id} className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-200">
-      <Link href={`/design/${design.id}`} className="block w-full h-full">
-        <Image
-          src={design.image_url || '/placeholder.jpg'}
-          alt={design.title}
-          fill
-          className="object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in"
-          sizes="(max-width: 480px) 100vw, (max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33.33vw, 25vw"
-          priority={false}
-          placeholder="blur"
-          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 sm:p-4 flex flex-col justify-between">
-          <div className="flex justify-end">
-            <div className="bg-white/90 hover:bg-white text-black p-1.5 cursor-pointer transition-all duration-200 hover:scale-110">
-              <ArrowUpRightIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+  const DesignItem = React.memo(({ design }: { design: Design }) => {
+    const [isImageLoading, setIsImageLoading] = useState(true);
+    
+    return (
+      <div className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-300">
+        <Link href={`/design/${design.id}`} className="block w-full h-full">
+          <div className={`absolute inset-0 transition-opacity duration-300 ${isImageLoading ? 'opacity-100' : 'opacity-0'}`}>
+            <BlurPlaceholder />
+          </div>
+          <Image
+            src={design.image_url || '/placeholder.jpg'}
+            alt={design.title}
+            fill
+            className={`object-cover group-hover:brightness-90 transition-all duration-300 cursor-zoom-in ${
+              isImageLoading ? 'opacity-0' : 'opacity-100'
+            }`}
+            sizes="(max-width: 480px) 100vw, (max-width: 640px) 50vw, (max-width: 768px) 50vw, (max-width: 1024px) 33.33vw, 25vw"
+            priority={false}
+            onLoadingComplete={() => setIsImageLoading(false)}
+            loading="lazy"
+          />
+          <div className={`absolute inset-0 p-3 sm:p-4 flex flex-col justify-between transition-all duration-300 ${
+            isImageLoading ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'
+          }`}>
+            {/* Arrow in top right corner */}
+            <div className="flex justify-end">
+              <div className="bg-gray-600 hover:bg-gray-700 text-white p-1.5 rounded-3xl cursor-pointer transition-all duration-200 hover:scale-110">
+                <ArrowRightIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </div>
+            </div>
+            
+            {/* Title at the bottom left with solid grey container */}
+            <div className="w-full flex justify-start">
+              <div className="bg-gray-600 text-white text-xs font-medium px-3 py-1.5 rounded-3xl w-40 truncate">
+                {design.title}
+              </div>
             </div>
           </div>
-          <div className="text-white">
-            <h3 className="font-medium text-xs sm:text-sm line-clamp-2">{design.title}</h3>
-            <p className="text-xs mt-1 opacity-80">{design.designer_name}</p>
-          </div>
-        </div>
-      </Link>
-    </div>
+        </Link>
+      </div>
+    );
+  });
+
+  const renderDesignItem = useCallback((design: Design) => (
+    <DesignItem key={design.id} design={design} />
   ), []);
 
   // Show error state
@@ -168,13 +191,13 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
     );
   }
 
-  // Show initial loading state
-  if ((isLoading || isLoadingTagged) && filteredDesigns.length === 0) {
+  // Show initial loading state with blurry placeholders
+  if ((isLoading || isLoadingTagged) && (!filteredDesigns || filteredDesigns.length === 0)) {
     return (
       <div className="mt-8">
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {[...Array(8)].map((_, index) => (
-            <DesignSkeleton key={index} />
+            <BlurPlaceholder key={index} />
           ))}
         </div>
       </div>
@@ -182,7 +205,7 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
   }
 
   // Show empty state
-  if (!isLoading && filteredDesigns.length === 0) {
+  if (!isLoading && (!filteredDesigns || filteredDesigns.length === 0)) {
     return (
       <div className="mt-8 flex flex-col justify-center items-center h-64">
         <p className="text-gray-500 text-lg">No designs found for this category.</p>
@@ -221,11 +244,11 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
         style={{ marginTop: '-100px', pointerEvents: 'none' }}
       />
       
-      {/* Loading more skeleton */}
+      {/* Loading more placeholders */}
       {(isLoadingMore || hookIsLoadingMore) && (
         <div className="mt-4 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
           {[...Array(4)].map((_, index) => (
-            <DesignSkeleton key={`loading-${index}`} />
+            <BlurPlaceholder key={`loading-${index}`} />
           ))}
         </div>
       )}

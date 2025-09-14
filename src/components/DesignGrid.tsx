@@ -34,7 +34,6 @@ type WebsiteWithTags = Omit<Website, 'tags'> & {
   [key: string]: string | number | boolean | string[] | undefined; // More specific type for dynamic properties
 };
 import Footer from './Footer';
-import DesignItemSkeleton from './DesignItemSkeleton';
 
 // Base design interface that extends Website with additional UI-specific properties
 interface Design {
@@ -186,7 +185,7 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     };
 
     initializeData();
-  }, [loadAllDesigns]); // Removed designs.length and initialWebsites from dependencies to prevent infinite loops
+  }, [loadAllDesigns, initialWebsites.length]);
 
   // Filter designs based on active category
   const filterDesigns = useCallback((designsToFilter: Design[]) => {
@@ -247,13 +246,17 @@ const DesignGrid: React.FC<DesignGridProps> = ({
     // The actual filtering is handled by the useMemo hook below
   }, [activeCategory, contentType, designs]);
 
-  const DesignItem = React.memo(({ design }: { design: Design }) => {
+  const DesignItem = React.memo(function DesignItem({ design }: { design: Design }) {
     const [isImageLoading, setIsImageLoading] = useState(true);
     const [videoError, setVideoError] = useState(false);
     const [showVideo, setShowVideo] = useState(false);
     const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
     const observerRef = useRef<IntersectionObserver | null>(null);
+    
+    const handleImageLoad = useCallback(() => {
+      setIsImageLoading(false);
+    }, []);
 
     // Set up intersection observer for lazy loading
     useEffect(() => {
@@ -326,17 +329,16 @@ const DesignGrid: React.FC<DesignGridProps> = ({
       return () => {
         video.onloadeddata = null;
       };
-    }, [shouldLoadVideo]);
+    }, [shouldLoadVideo, handleImageLoad]);
 
     const handleVideoError = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
       console.log('Video error:', e);
       setVideoError(true);
       setShowVideo(false);
     }, []);
-
-    const handleImageLoad = useCallback(() => {
-      setIsImageLoading(false);
-    }, []);
+    
+    // Add display name for the memoized component
+    (DesignItem as React.NamedExoticComponent).displayName = 'DesignItem';
 
     return (
       <div className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in border border-gray-200 hover:border-gray-300 transition-all duration-300 rounded-lg">

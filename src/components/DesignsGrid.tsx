@@ -129,7 +129,7 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
     return result;
   }, [designs, taggedDesigns, isTagFilter]);
 
-  const DesignItem = React.memo(({ design }: { design: Design }) => {
+  const DesignItem = React.memo(function DesignItem({ design }: { design: Design }) {
     const [isImageLoading, setIsImageLoading] = useState(true);
     
     return (
@@ -171,10 +171,13 @@ const DesignsGrid: React.FC<DesignsGridProps> = ({
       </div>
     );
   });
+  
+  // Add display name for the memoized component
+  (DesignItem as React.NamedExoticComponent).displayName = 'DesignItem';
 
   const renderDesignItem = useCallback((design: Design) => (
     <DesignItem key={design.id} design={design} />
-  ), []);
+  ), [DesignItem]);
 
   // Show error state
   if (error || tagError) {
